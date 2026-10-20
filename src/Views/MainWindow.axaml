@@ -4,165 +4,59 @@
         xmlns:controls="using:PdfBooklet.Views.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="600"
         x:Class="PdfBooklet.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Width="980" Height="720"
-        MinWidth="760" MinHeight="560"
+        Width="820" Height="680"
+        MinWidth="560" MinHeight="480"
         Title="PdfBooklet">
 
     <DockPanel IsEnabled="{Binding CanInteract}">
-
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
-                <MenuItem Header="_Open PDF…" Command="{Binding OpenPdfCommand}" InputGesture="Ctrl+O"/>
-                <MenuItem Header="_Export booklet…" Command="{Binding ExportCommand}" InputGesture="Ctrl+E"/>
-            </MenuItem>
-        </Menu>
 
         <Border DockPanel.Dock="Bottom" Padding="10,4" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
             <TextBlock Text="{Binding StatusMessage}"/>
         </Border>
 
-        <Grid ColumnDefinitions="340,*">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="12">
+                <Button Classes="tool" Command="{Binding OpenPdfCommand}" ToolTip.Tip="Import PDF" AutomationProperties.Name="Import PDF">
+                    <Viewbox Width="32" Height="32">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="{StaticResource ImportIconTray}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round"/>
+                            <Path Data="{StaticResource ImportIconArrow}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round"/>
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+                <Button Classes="tool" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="Settings" AutomationProperties.Name="Settings">
+                    <Viewbox Width="32" Height="32">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="{StaticResource SettingsIcon}" Fill="{Binding $parent[Button].Foreground}"/>
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+                <Button Classes="tool accent" Command="{Binding ExportCommand}" ToolTip.Tip="Export booklet" AutomationProperties.Name="Export booklet">
+                    <Viewbox Width="32" Height="32">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="{StaticResource ImportIconTray}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round"/>
+                            <Path Data="{StaticResource ExportIconArrow}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeJoin="Round"/>
+                        </Canvas>
+                    </Viewbox>
+                </Button>
 
-            <DockPanel Grid.Column="0">
-            <Button DockPanel.Dock="Bottom"
-                    Margin="12"
-                    Content="Export booklet…"
-                    Command="{Binding ExportCommand}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center"
-                    Background="#1D4ED8"
-                    Foreground="White"/>
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="12" Spacing="6">
-                    <TextBlock Text="{Binding SourceSummary}" TextWrapping="Wrap" FontWeight="SemiBold"/>
-                    <Button Content="Open PDF…" Command="{Binding OpenPdfCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+            <StackPanel VerticalAlignment="Center" Margin="8,0,0,0" Spacing="2">
+                <TextBlock Text="{Binding SourceSummary}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding LayoutSummary}" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding ValidationMessage}" IsVisible="{Binding HasValidationMessage}" Foreground="#E5484D" TextWrapping="Wrap"/>
+            </StackPanel>
+        </StackPanel>
 
-                    <TextBlock Classes="section" Text="Sheet"/>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Paper size"/>
-                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding PaperSizes}" SelectedItem="{Binding PaperSize}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="x:Object">
-                                    <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*" IsVisible="{Binding IsCustomPaperSize}">
-                        <TextBlock Classes="label" Text="Width (mm)"/>
-                        <NumericUpDown Grid.Column="1" Minimum="50" Maximum="2000" Increment="1" FormatString="0.#" Value="{Binding CustomWidthMm}"/>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*" IsVisible="{Binding IsCustomPaperSize}">
-                        <TextBlock Classes="label" Text="Height (mm)"/>
-                        <NumericUpDown Grid.Column="1" Minimum="50" Maximum="2000" Increment="1" FormatString="0.#" Value="{Binding CustomHeightMm}"/>
-                    </Grid>
-                    <TextBlock Classes="section" Text="Binding"/>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Binding edge"/>
-                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding BindingEdges}" SelectedItem="{Binding BindingEdge}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="x:Object">
-                                    <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Pages per signature"/>
-                        <NumericUpDown Grid.Column="1" Minimum="0" Maximum="1000" Increment="4" FormatString="0" Value="{Binding PagesPerSignature}"/>
-                    </Grid>
-                    <TextBlock Classes="section" Text="Margins"/>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Top (mm)"/>
-                        <NumericUpDown Grid.Column="1" Minimum="0" Maximum="200" Increment="1" FormatString="0.#" Value="{Binding MarginTopMm}"/>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Bottom (mm)"/>
-                        <NumericUpDown Grid.Column="1" Minimum="0" Maximum="200" Increment="1" FormatString="0.#" Value="{Binding MarginBottomMm}"/>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Inner / spine (mm)"/>
-                        <NumericUpDown Grid.Column="1" Minimum="0" Maximum="200" Increment="1" FormatString="0.#" Value="{Binding MarginInnerMm}"/>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Outer (mm)"/>
-                        <NumericUpDown Grid.Column="1" Minimum="0" Maximum="200" Increment="1" FormatString="0.#" Value="{Binding MarginOuterMm}"/>
-                    </Grid>
-                    <TextBlock Classes="section" Text="Scale and alignment"/>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Scale"/>
-                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding ScaleModes}" SelectedItem="{Binding ScaleMode}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="x:Object">
-                                    <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*" IsVisible="{Binding IsCustomScale}">
-                        <TextBlock Classes="label" Text="Custom scale (%)"/>
-                        <NumericUpDown Grid.Column="1" Minimum="1" Maximum="1000" Increment="1" FormatString="0.#" Value="{Binding CustomScalePercent}"/>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Horizontal"/>
-                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding HorizontalAlignments}" SelectedItem="{Binding HorizontalAlignment}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="x:Object">
-                                    <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </Grid>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="Vertical"/>
-                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding VerticalAlignments}" SelectedItem="{Binding VerticalAlignment}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="x:Object">
-                                    <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </Grid>
-                    <TextBlock Classes="section" Text="Output PDF"/>
-                    <Grid ColumnDefinitions="140,*">
-                        <TextBlock Classes="label" Text="PDF version"/>
-                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding PdfVersions}" SelectedItem="{Binding PdfVersion}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="x:Object">
-                                    <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </Grid>
-                    <CheckBox Content="Compress streams" IsChecked="{Binding CompressStreams}"/>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,8">
+            <Button Content="◀" Command="{Binding PreviousSheetCommand}" MinWidth="40" HorizontalContentAlignment="Center"/>
+            <TextBlock Text="{Binding SheetLabel}" VerticalAlignment="Center" MinWidth="110" TextAlignment="Center"/>
+            <Button Content="▶" Command="{Binding NextSheetCommand}" MinWidth="40" HorizontalContentAlignment="Center"/>
+        </StackPanel>
 
-                </StackPanel>
-            </ScrollViewer>
-            </DockPanel>
-
-            <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*,Auto" Margin="0,12,12,12">
-                <TextBlock Grid.Row="0"
-                           Text="{Binding ValidationMessage}"
-                           IsVisible="{Binding HasValidationMessage}"
-                           Foreground="#E5484D"
-                           TextWrapping="Wrap"
-                           Margin="0,0,0,8"/>
-
-                <TextBlock Grid.Row="1" Text="{Binding LayoutSummary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
-
-                <Border Grid.Row="2" Background="#6B6F76" BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-                    <controls:BookletPreview Plan="{Binding Plan}" SheetIndex="{Binding SheetIndex}"/>
-                </Border>
-
-                <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,8,0,0">
-                    <Button Content="◀" Command="{Binding PreviousSheetCommand}" MinWidth="40" HorizontalContentAlignment="Center"/>
-                    <TextBlock Text="{Binding SheetLabel}" VerticalAlignment="Center" MinWidth="110" TextAlignment="Center"/>
-                    <Button Content="▶" Command="{Binding NextSheetCommand}" MinWidth="40" HorizontalContentAlignment="Center"/>
-                </StackPanel>
-            </Grid>
-        </Grid>
+        <Border Margin="12,0,12,0" Background="#6B6F76" BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <controls:BookletPreview Plan="{Binding Plan}" SheetIndex="{Binding SheetIndex}"/>
+        </Border>
     </DockPanel>
 </Window>

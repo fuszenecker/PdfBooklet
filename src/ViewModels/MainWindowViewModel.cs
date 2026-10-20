@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,15 +20,8 @@ namespace PdfBooklet.ViewModels;
 /// </summary>
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private static readonly HashSet<string> SettingNames =
-    [
-        nameof(PaperSize), nameof(CustomWidthMm), nameof(CustomHeightMm),
-        nameof(BindingEdge), nameof(MarginTopMm), nameof(MarginBottomMm), nameof(MarginInnerMm), nameof(MarginOuterMm),
-        nameof(ScaleMode), nameof(CustomScalePercent), nameof(HorizontalAlignment), nameof(VerticalAlignment),
-        nameof(PagesPerSignature), nameof(PdfVersion), nameof(CompressStreams),
-    ];
-
     private readonly IPdfFileDialogService _fileDialogService;
+    private readonly ISettingsDialogService _settingsDialogService;
     private readonly IPdfSourceReader _sourceReader;
     private readonly IBookletLayoutPlanner _planner;
     private readonly IBookletSettingsValidator _validator;
@@ -39,69 +31,16 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ILogger<MainWindowViewModel> _logger;
 
     private PdfSourceInfo? _source;
-    private bool _isLoadingSettings;
-
-    public PaperSize[] PaperSizes { get; } = Enum.GetValues<PaperSize>();
-    public BindingEdge[] BindingEdges { get; } = Enum.GetValues<BindingEdge>();
-    public ScaleMode[] ScaleModes { get; } = Enum.GetValues<ScaleMode>();
-    public PageHorizontalAlignment[] HorizontalAlignments { get; } = Enum.GetValues<PageHorizontalAlignment>();
-    public PageVerticalAlignment[] VerticalAlignments { get; } = Enum.GetValues<PageVerticalAlignment>();
-    public PdfVersion[] PdfVersions { get; } = Enum.GetValues<PdfVersion>();
+    private BookletSettings _settings;
 
     public IAsyncRelayCommand OpenPdfCommand { get; }
+    public IAsyncRelayCommand OpenSettingsCommand { get; }
     public IAsyncRelayCommand ExportCommand { get; }
     public IRelayCommand PreviousSheetCommand { get; }
     public IRelayCommand NextSheetCommand { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsCustomPaperSize))]
-    private PaperSize paperSize;
-
-    [ObservableProperty]
-    private double customWidthMm;
-
-    [ObservableProperty]
-    private double customHeightMm;
-
-    [ObservableProperty]
-    private BindingEdge bindingEdge;
-
-    [ObservableProperty]
-    private double marginTopMm;
-
-    [ObservableProperty]
-    private double marginBottomMm;
-
-    [ObservableProperty]
-    private double marginInnerMm;
-
-    [ObservableProperty]
-    private double marginOuterMm;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsCustomScale))]
-    private ScaleMode scaleMode;
-
-    [ObservableProperty]
-    private double customScalePercent;
-
-    [ObservableProperty]
-    private PageHorizontalAlignment horizontalAlignment;
-
-    [ObservableProperty]
-    private PageVerticalAlignment verticalAlignment;
-
-    [ObservableProperty]
-    private int pagesPerSignature;
-
-    [ObservableProperty]
-    private PdfVersion pdfVersion;
-
-    [ObservableProperty]
-    private bool compressStreams;
-
-    [ObservableProperty]
-    private string sourceSummary = "No PDF loaded. Use File → Open PDF.";
+    private string sourceSummary = "No PDF loaded. Use the import button.";
 
     [ObservableProperty]
     private string layoutSummary = string.Empty;
@@ -124,8 +63,6 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(CanInteract))]
     private bool isBusy;
 
-    public bool IsCustomPaperSize => PaperSize == PaperSize.Custom;
-    public bool IsCustomScale => ScaleMode == ScaleMode.Custom;
     public bool HasSource => _source is not null;
     public bool HasValidationMessage => !string.IsNullOrEmpty(ValidationMessage);
     public bool CanInteract => !IsBusy;
@@ -136,6 +73,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel(
         IPdfFileDialogService fileDialogService,
+        ISettingsDialogService settingsDialogService,
         IPdfSourceReader sourceReader,
         IBookletLayoutPlanner planner,
         IBookletSettingsValidator validator,
@@ -145,6 +83,7 @@ public partial class MainWindowViewModel : ViewModelBase
         ILogger<MainWindowViewModel> logger)
     {
         _fileDialogService = fileDialogService;
+        _settingsDialogService = settingsDialogService;
         _sourceReader = sourceReader;
         _planner = planner;
         _validator = validator;
@@ -154,11 +93,13 @@ public partial class MainWindowViewModel : ViewModelBase
         _logger = logger;
 
         OpenPdfCommand = new AsyncRelayCommand(OpenPdfAsync, () => CanInteract);
+        OpenSettingsCommand = new AsyncRelayCommand(OpenSettingsAsync, () => CanInteract);
         ExportCommand = new AsyncRelayCommand(ExportAsync, CanExport);
         PreviousSheetCommand = new RelayCommand(() => SheetIndex--, () => SheetIndex > 0);
         NextSheetCommand = new RelayCommand(() => SheetIndex++, () => Plan is { } p && SheetIndex < p.Sheets.Count - 1);
 
-        LoadSettings(_configurationService.Current);
+        var config = _configurationService.Current;
+        _settings = new BookletSettings(config.Sheet.Clone(), config.Layout.Clone(), config.Output.Clone());
         RebuildPlan();
     }
 
@@ -168,16 +109,11 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         base.OnPropertyChanged(e);
 
-        if (!_isLoadingSettings && e.PropertyName is not null && SettingNames.Contains(e.PropertyName))
-        {
-            RebuildPlan();
-            PersistSettings();
-        }
-
         switch (e.PropertyName)
         {
             case nameof(IsBusy):
                 OpenPdfCommand.NotifyCanExecuteChanged();
+                OpenSettingsCommand.NotifyCanExecuteChanged();
                 ExportCommand.NotifyCanExecuteChanged();
                 break;
             case nameof(Plan):
@@ -192,72 +128,28 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void LoadSettings(AppConfiguration config)
+    private async Task OpenSettingsAsync()
     {
-        _isLoadingSettings = true;
-        try
+        var result = await _settingsDialogService.ShowAsync(_settings);
+        if (result is null)
         {
-            PaperSize = config.Sheet.PaperSize;
-            CustomWidthMm = config.Sheet.CustomWidthMm;
-            CustomHeightMm = config.Sheet.CustomHeightMm;
-            BindingEdge = config.Layout.Binding;
-            MarginTopMm = config.Layout.MarginTopMm;
-            MarginBottomMm = config.Layout.MarginBottomMm;
-            MarginInnerMm = config.Layout.MarginInnerMm;
-            MarginOuterMm = config.Layout.MarginOuterMm;
-            ScaleMode = config.Layout.ScaleMode;
-            CustomScalePercent = config.Layout.CustomScalePercent;
-            HorizontalAlignment = config.Layout.HorizontalAlignment;
-            VerticalAlignment = config.Layout.VerticalAlignment;
-            PagesPerSignature = config.Layout.PagesPerSignature;
-            PdfVersion = config.Output.PdfVersion;
-            CompressStreams = config.Output.CompressStreams;
+            return;
         }
-        finally
-        {
-            _isLoadingSettings = false;
-        }
-    }
 
-    private SheetSettings BuildSheetSettings() => new()
-    {
-        PaperSize = PaperSize,
-        CustomWidthMm = CustomWidthMm,
-        CustomHeightMm = CustomHeightMm,
-    };
+        _settings = result;
 
-    private LayoutSettings BuildLayoutSettings() => new()
-    {
-        Binding = BindingEdge,
-        MarginTopMm = MarginTopMm,
-        MarginBottomMm = MarginBottomMm,
-        MarginInnerMm = MarginInnerMm,
-        MarginOuterMm = MarginOuterMm,
-        ScaleMode = ScaleMode,
-        CustomScalePercent = CustomScalePercent,
-        HorizontalAlignment = HorizontalAlignment,
-        VerticalAlignment = VerticalAlignment,
-        PagesPerSignature = PagesPerSignature,
-    };
-
-    private OutputSettings BuildOutputSettings() => new()
-    {
-        PdfVersion = PdfVersion,
-        CompressStreams = CompressStreams,
-    };
-
-    private void PersistSettings()
-    {
         var config = _configurationService.Current.Clone();
-        config.Sheet = BuildSheetSettings();
-        config.Layout = BuildLayoutSettings();
-        config.Output = BuildOutputSettings();
+        config.Sheet = result.Sheet.Clone();
+        config.Layout = result.Layout.Clone();
+        config.Output = result.Output.Clone();
         _configurationService.Apply(config);
+
+        RebuildPlan();
     }
 
     private void RebuildPlan()
     {
-        var error = _validator.Validate(BuildSheetSettings(), BuildLayoutSettings());
+        var error = _validator.Validate(_settings.Sheet, _settings.Layout);
         ValidationMessage = error ?? string.Empty;
 
         if (_source is null || error is not null)
@@ -268,7 +160,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        var plan = _planner.Plan(_source, BuildSheetSettings(), BuildLayoutSettings());
+        var plan = _planner.Plan(_source, _settings.Sheet, _settings.Layout);
         Plan = plan;
         SheetIndex = Math.Clamp(SheetIndex, 0, plan.Sheets.Count - 1);
         LayoutSummary = Describe(_source, plan);
@@ -371,15 +263,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
             // Re-plan against the exact settings in effect now; the preview plan may be older
             // than a setting the user changed while the file picker was open.
-            var sheet = BuildSheetSettings();
-            var layout = BuildLayoutSettings();
+            var sheet = _settings.Sheet;
+            var layout = _settings.Layout;
             if (_validator.Validate(sheet, layout) is { } error)
             {
                 throw new PdfBookletException(error);
             }
 
             StatusMessage = $"Exporting {Path.GetFileName(destination)}…";
-            await _exporter.ExportAsync(_source, _planner.Plan(_source, sheet, layout), BuildOutputSettings(), destination);
+            await _exporter.ExportAsync(_source, _planner.Plan(_source, sheet, layout), _settings.Output, destination);
 
             RememberDirectory(destination, source: false);
             StatusMessage = $"Exported {Path.GetFileName(destination)}";

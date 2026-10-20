@@ -1,0 +1,128 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PdfBooklet.ViewModels"
+        x:Class="PdfBooklet.Views.SettingsDialog"
+        x:DataType="vm:SettingsDialogViewModel"
+        Title="Settings"
+        Width="460" Height="700"
+        MinWidth="420" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Bottom" Margin="12" Spacing="8">
+            <TextBlock Text="{Binding ValidationMessage}"
+                       IsVisible="{Binding HasValidationMessage}"
+                       Foreground="#E5484D"
+                       TextWrapping="Wrap"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="Cancel" Command="{Binding CancelCommand}" MinWidth="90" IsCancel="True" HorizontalContentAlignment="Center"/>
+                <Button Content="OK" Command="{Binding OkCommand}" MinWidth="90" IsDefault="True" HorizontalContentAlignment="Center"
+                        Background="#1D4ED8" Foreground="White"/>
+            </StackPanel>
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12,0,12,12" Spacing="6">
+                <TextBlock Classes="section" Text="Sheet"/>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Paper size"/>
+                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding PaperSizes}" SelectedItem="{Binding PaperSize}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="x:Object">
+                                <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <Grid ColumnDefinitions="150,*" IsVisible="{Binding IsCustomPaperSize}">
+                    <TextBlock Classes="label" Text="Width (mm)"/>
+                    <NumericUpDown Grid.Column="1" Minimum="50" Maximum="2000" Increment="1" FormatString="0.#" Value="{Binding CustomWidthMm}"/>
+                </Grid>
+                <Grid ColumnDefinitions="150,*" IsVisible="{Binding IsCustomPaperSize}">
+                    <TextBlock Classes="label" Text="Height (mm)"/>
+                    <NumericUpDown Grid.Column="1" Minimum="50" Maximum="2000" Increment="1" FormatString="0.#" Value="{Binding CustomHeightMm}"/>
+                </Grid>
+                <TextBlock Classes="section" Text="Binding"/>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Binding edge"/>
+                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding BindingEdges}" SelectedItem="{Binding BindingEdge}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="x:Object">
+                                <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Pages per signature"/>
+                    <NumericUpDown Grid.Column="1" Minimum="0" Maximum="1000" Increment="4" FormatString="0" Value="{Binding PagesPerSignature}"/>
+                </Grid>
+                <TextBlock Classes="section" Text="Margins"/>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Top (mm)"/>
+                    <NumericUpDown Grid.Column="1" Minimum="0" Maximum="200" Increment="1" FormatString="0.#" Value="{Binding MarginTopMm}"/>
+                </Grid>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Bottom (mm)"/>
+                    <NumericUpDown Grid.Column="1" Minimum="0" Maximum="200" Increment="1" FormatString="0.#" Value="{Binding MarginBottomMm}"/>
+                </Grid>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Inner / spine (mm)"/>
+                    <NumericUpDown Grid.Column="1" Minimum="0" Maximum="200" Increment="1" FormatString="0.#" Value="{Binding MarginInnerMm}"/>
+                </Grid>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Outer (mm)"/>
+                    <NumericUpDown Grid.Column="1" Minimum="0" Maximum="200" Increment="1" FormatString="0.#" Value="{Binding MarginOuterMm}"/>
+                </Grid>
+                <TextBlock Classes="section" Text="Scale and alignment"/>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Scale"/>
+                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding ScaleModes}" SelectedItem="{Binding ScaleMode}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="x:Object">
+                                <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <Grid ColumnDefinitions="150,*" IsVisible="{Binding IsCustomScale}">
+                    <TextBlock Classes="label" Text="Custom scale (%)"/>
+                    <NumericUpDown Grid.Column="1" Minimum="1" Maximum="1000" Increment="1" FormatString="0.#" Value="{Binding CustomScalePercent}"/>
+                </Grid>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Horizontal"/>
+                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding HorizontalAlignments}" SelectedItem="{Binding HorizontalAlignment}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="x:Object">
+                                <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="Vertical"/>
+                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding VerticalAlignments}" SelectedItem="{Binding VerticalAlignment}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="x:Object">
+                                <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <TextBlock Classes="section" Text="Output PDF"/>
+                <Grid ColumnDefinitions="150,*">
+                    <TextBlock Classes="label" Text="PDF version"/>
+                    <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding PdfVersions}" SelectedItem="{Binding PdfVersion}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="x:Object">
+                                <TextBlock Text="{Binding, Converter={StaticResource EnumDisplay}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <CheckBox Content="Compress streams" IsChecked="{Binding CompressStreams}"/>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

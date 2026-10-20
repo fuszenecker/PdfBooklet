@@ -40,6 +40,7 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<IPdfBookletExporter, PdfBookletExporter>();
             services.AddSingleton<IPdfFileDialogService, PdfFileDialogService>();
             services.AddSingleton<IInfoDialogService, InfoDialogService>();
+            services.AddSingleton<ISettingsDialogService, SettingsDialogService>();
         }
 
         /// <summary>The factory that constructs dialog view models and the application's root view model.</summary>

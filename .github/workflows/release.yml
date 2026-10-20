@@ -1,0 +1,133 @@
+name: Release
+
+# Publishes self-contained, single-file builds for Linux, Windows and macOS for a newly
+# pushed tag and attaches them to a GitHub pre-release. The build jobs run in parallel and
+# the release job waits for all of them and for the test job, so a release only appears
+# once everything has passed.
+#
+# The release version is taken from the tag (a leading "v" is stripped if present).
+
+on:
+  push:
+    tags:
+      - '**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet test PdfBooklet.slnx --configuration Release --verbosity normal
+
+  build:
+    name: Publish ${{ matrix.rid }}
+    needs: test
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - rid: linux-x64
+            os: ubuntu-latest
+            archive: tar.gz
+          - rid: win-x64
+            os: windows-latest
+            archive: zip
+          - rid: osx-arm64
+            os: macos-latest
+            archive: tar.gz
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${version}"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        run: |
+          dotnet publish src/PdfBooklet.csproj \
+            --configuration Release \
+            --runtime ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:DebugType=None \
+            -p:Version=${{ steps.version.outputs.version }} \
+            --output publish/PdfBooklet-${{ steps.version.outputs.version }}-${{ matrix.rid }}
+
+      - name: Package
+        id: package
+        run: |
+          name="PdfBooklet-${{ steps.version.outputs.version }}-${{ matrix.rid }}"
+          cp LICENSE "publish/${name}/"
+          cd publish
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            7z a -tzip "${name}.zip" "${name}" > /dev/null
+            echo "file=publish/${name}.zip" >> "$GITHUB_OUTPUT"
+          else
+            tar -czf "${name}.tar.gz" "${name}"
+            echo "file=publish/${name}.tar.gz" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.rid }}
+          path: ${{ steps.package.outputs.file }}
+          if-no-files-found: error
+
+  release:
+    name: Create pre-release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all builds
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release and upload builds
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          mapfile -t files < <(find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) | sort)
+          if [ "${#files[@]}" -ne 3 ]; then
+            echo "Expected 3 archives (linux, windows, macOS); found ${#files[@]}:" >&2
+            printf '  %s\n' "${files[@]}" >&2
+            exit 1
+          fi
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} already exists; refreshing assets."
+            gh release upload "${GITHUB_REF_NAME}" --clobber "${files[@]}"
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "${GITHUB_REF_NAME}" \
+              --generate-notes \
+              --prerelease \
+              "${files[@]}"
+          fi
