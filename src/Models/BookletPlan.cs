@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PdfBooklet.Models;
 
@@ -18,4 +19,9 @@ public sealed record BookletSheet(SheetSide Front, SheetSide Back);
 public sealed record BookletPlan(PageSize Sheet, IReadOnlyList<BookletSheet> Sheets)
 {
     public int SideCount => Sheets.Count * 2;
+
+    /// <summary>Sides in output-PDF order: front/back alternating, or (manual duplex) all fronts, then all backs in reverse.</summary>
+    public IReadOnlyList<SheetSide> SidesInPrintOrder(bool manualDuplex) => manualDuplex
+        ? [.. Sheets.Select(sheet => sheet.Front), .. Sheets.Reverse().Select(sheet => sheet.Back)]
+        : [.. Sheets.SelectMany(sheet => new[] { sheet.Front, sheet.Back })];
 }

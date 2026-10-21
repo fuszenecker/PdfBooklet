@@ -18,7 +18,7 @@ public sealed class SettingsDialogViewModelTests
         var initial = new BookletSettings(
             new SheetSettings { PaperSize = PaperSize.Letter },
             new LayoutSettings { Binding = BindingEdge.Right, MarginInnerMm = 7, PagesPerSignature = 16 },
-            new OutputSettings { PdfVersion = PdfVersion.Pdf15, CompressStreams = false });
+            new OutputSettings { PdfVersion = PdfVersion.Pdf15, CompressStreams = false, ManualDuplex = true });
 
         var built = Create(initial).Build();
 
@@ -28,6 +28,7 @@ public sealed class SettingsDialogViewModelTests
         Assert.AreEqual(16, built.Layout.PagesPerSignature);
         Assert.AreEqual(PdfVersion.Pdf15, built.Output.PdfVersion);
         Assert.IsFalse(built.Output.CompressStreams);
+        Assert.IsTrue(built.Output.ManualDuplex);
     }
 
     [TestMethod]

@@ -4,7 +4,7 @@
         x:Class="PdfBooklet.Views.SettingsDialog"
         x:DataType="vm:SettingsDialogViewModel"
         Title="Settings"
-        Width="460" Height="700"
+        Width="460" Height="760"
         MinWidth="420" MinHeight="400"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
@@ -122,6 +122,10 @@
                     </ComboBox>
                 </Grid>
                 <CheckBox Content="Compress streams" IsChecked="{Binding CompressStreams}"/>
+                <CheckBox IsChecked="{Binding ManualDuplex}"
+                          ToolTip.Tip="For single-sided printers: print the first half of the pages, turn the stack over, put it back and print the rest.">
+                    <TextBlock Text="Manual duplex: fronts first, then backs in reverse order" TextWrapping="Wrap"/>
+                </CheckBox>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

@@ -50,6 +50,7 @@ public sealed class ConfigurationStoreTests
         config.Layout.Binding = BindingEdge.Right;
         config.Layout.PagesPerSignature = 16;
         config.Output.CompressStreams = false;
+        config.Output.ManualDuplex = true;
         config.UiPreferences.LastSourceDirectory = "/books";
 
         await store.SaveAsync(config);
@@ -59,6 +60,7 @@ public sealed class ConfigurationStoreTests
         Assert.AreEqual(BindingEdge.Right, loaded.Layout.Binding);
         Assert.AreEqual(16, loaded.Layout.PagesPerSignature);
         Assert.IsFalse(loaded.Output.CompressStreams);
+        Assert.IsTrue(loaded.Output.ManualDuplex);
         Assert.AreEqual("/books", loaded.UiPreferences.LastSourceDirectory);
     }
 

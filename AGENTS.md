@@ -27,6 +27,9 @@ tests/
 - `BookletLayoutPlanner` is a pure function from (source page sizes, sheet, layout) to a `BookletPlan`:
   which source page lands where on every sheet side, with scale and offset. The preview control and
   `PdfBookletExporter` both consume the plan, so the preview shows exactly what is exported.
+- The output PDF alternates front/back of each sheet (duplex printers). `OutputSettings.ManualDuplex` instead
+  writes all fronts first, then all backs in reverse sheet order (`BookletPlan.SidesInPrintOrder`), for
+  single-sided printers where the printed stack is turned over and fed back in.
 - Sheets are always landscape (two pages side by side, fold across the short axis). Page counts are
   padded with blanks at the end to a multiple of 4 per signature.
 - Config lives in `appsettings.json` (bundled defaults) layered with the per-user file

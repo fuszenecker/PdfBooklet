@@ -182,6 +182,48 @@ public sealed class BookletLayoutPlannerTests
     }
 
     [TestMethod]
+    public void SidesInPrintOrder_Duplex_AlternatesFrontAndBack()
+    {
+        var plan = CreatePlanner().Plan(Source(12), new SheetSettings(), new LayoutSettings());
+
+        var sides = plan.SidesInPrintOrder(manualDuplex: false);
+
+        Assert.HasCount(6, sides);
+        Assert.AreSame(plan.Sheets[0].Front, sides[0]);
+        Assert.AreSame(plan.Sheets[0].Back, sides[1]);
+        Assert.AreSame(plan.Sheets[1].Front, sides[2]);
+        Assert.AreSame(plan.Sheets[2].Back, sides[5]);
+    }
+
+    [TestMethod]
+    public void SidesInPrintOrder_ManualDuplex_FrontsFirstThenBacksReversed()
+    {
+        var plan = CreatePlanner().Plan(Source(20), new SheetSettings(), new LayoutSettings());
+
+        var sides = plan.SidesInPrintOrder(manualDuplex: true);
+
+        // 5 sheets -> output pages 1,3,5,7,9 then 10,8,6,4,2 of the duplex order.
+        Assert.HasCount(10, sides);
+        for (var i = 0; i < 5; i++)
+        {
+            Assert.AreSame(plan.Sheets[i].Front, sides[i]);
+            Assert.AreSame(plan.Sheets[4 - i].Back, sides[5 + i]);
+        }
+    }
+
+    [TestMethod]
+    public void SidesInPrintOrder_UsesEverySideExactlyOnce()
+    {
+        var plan = CreatePlanner().Plan(Source(13), new SheetSettings(), new LayoutSettings { PagesPerSignature = 8 });
+
+        var manual = plan.SidesInPrintOrder(manualDuplex: true);
+        var duplex = plan.SidesInPrintOrder(manualDuplex: false);
+
+        Assert.HasCount(plan.SideCount, manual);
+        CollectionAssert.AreEquivalent(duplex.ToList(), manual.ToList());
+    }
+
+    [TestMethod]
     public void EmptyDocument_ProducesNoSheets()
     {
         var plan = CreatePlanner().Plan(new PdfSourceInfo("empty.pdf", []), new SheetSettings(), new LayoutSettings());

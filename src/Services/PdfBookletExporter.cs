@@ -51,10 +51,9 @@ public sealed class PdfBookletExporter : IPdfBookletExporter
 
                 using var form = XPdfForm.FromFile(source.Path);
 
-                foreach (var sheet in plan.Sheets)
+                foreach (var side in plan.SidesInPrintOrder(output.ManualDuplex))
                 {
-                    AddSide(document, form, plan.Sheet, sheet.Front, cancellationToken);
-                    AddSide(document, form, plan.Sheet, sheet.Back, cancellationToken);
+                    AddSide(document, form, plan.Sheet, side, cancellationToken);
                 }
 
                 document.Save(temporaryPath);

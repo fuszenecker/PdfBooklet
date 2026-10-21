@@ -74,6 +74,9 @@ public partial class SettingsDialogViewModel : ViewModelBase
     private bool compressStreams;
 
     [ObservableProperty]
+    private bool manualDuplex;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasValidationMessage))]
     private string validationMessage = string.Empty;
 
@@ -106,6 +109,7 @@ public partial class SettingsDialogViewModel : ViewModelBase
         PagesPerSignature = current.Layout.PagesPerSignature;
         PdfVersion = current.Output.PdfVersion;
         CompressStreams = current.Output.CompressStreams;
+        ManualDuplex = current.Output.ManualDuplex;
 
         Revalidate();
     }
@@ -134,6 +138,7 @@ public partial class SettingsDialogViewModel : ViewModelBase
         {
             PdfVersion = PdfVersion,
             CompressStreams = CompressStreams,
+            ManualDuplex = ManualDuplex,
         });
 
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)

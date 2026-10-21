@@ -52,6 +52,19 @@ public sealed class AppConfigurationCloneTests
     }
 
     [TestMethod]
+    public void Clone_CopiesEveryOutputProperty()
+    {
+        var output = new OutputSettings { PdfVersion = PdfVersion.Pdf14, CompressStreams = false, ManualDuplex = true };
+
+        var clone = output.Clone();
+
+        foreach (var property in typeof(OutputSettings).GetProperties())
+        {
+            Assert.AreEqual(property.GetValue(output), property.GetValue(clone), property.Name);
+        }
+    }
+
+    [TestMethod]
     public void Clone_ToleratesNullSections()
     {
         var config = new AppConfiguration { Sheet = null!, Layout = null!, Output = null!, UiPreferences = null! };

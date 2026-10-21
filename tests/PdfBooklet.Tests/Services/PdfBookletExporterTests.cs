@@ -93,6 +93,19 @@ public sealed class PdfBookletExporterTests
     }
 
     [TestMethod]
+    public async Task Export_ManualDuplex_WritesTheSamePageCount()
+    {
+        var source = await new PdfSourceReader().ReadAsync(CreateSourcePdf(10));
+        var plan = new BookletLayoutPlanner(new SheetSizeResolver()).Plan(source, new SheetSettings(), new LayoutSettings());
+        var destination = Path.Combine(_directory, "manual.pdf");
+
+        await new PdfBookletExporter().ExportAsync(source, plan, new OutputSettings { ManualDuplex = true }, destination);
+
+        using var result = PdfReader.Open(destination, PdfDocumentOpenMode.Import);
+        Assert.AreEqual(plan.SideCount, result.PageCount);
+    }
+
+    [TestMethod]
     public async Task Export_LeavesNoTemporaryFilesBehind()
     {
         var source = await new PdfSourceReader().ReadAsync(CreateSourcePdf(4));
