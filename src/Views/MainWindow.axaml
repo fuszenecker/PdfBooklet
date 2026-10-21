@@ -9,6 +9,7 @@
         x:DataType="vm:MainWindowViewModel"
         Width="820" Height="680"
         MinWidth="560" MinHeight="480"
+        Icon="/Assets/pdfbooklet-icon.ico"
         Title="PdfBooklet">
 
     <DockPanel IsEnabled="{Binding CanInteract}">

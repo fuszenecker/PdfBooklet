@@ -53,6 +53,25 @@ dotnet test tests/PdfBooklet.Tests/PdfBooklet.Tests.csproj
 dotnet run --project src/PdfBooklet.csproj -- path/to/file.pdf   # optional file to open at startup
 ```
 
+## Packaging and releases
+
+Installer scripts live in `scripts/` (ported from PentaGrammata) and read the version from `version.txt`
+unless `--version` is given; `.csproj` carries no version. Outputs go to `installer/` (git-ignored).
+
+| Platform | Script | Output |
+|---|---|---|
+| Linux .deb | `scripts/Build-Deb-Installer.sh` | `installer/deb/pdfbooklet_<ver>_amd64.deb` |
+| Linux .rpm | `scripts/Build-Rpm-Installer.sh` | `installer/rpm/x86_64/pdfbooklet-<ver>-1.el10.x86_64.rpm` |
+| Linux both, in Podman | `scripts/Build-Installer.Podman.sh` | builds on Ubuntu 26.04 / Rocky 10 images from `container/` |
+| Windows .exe | `scripts/Build-Installer.ps1` (NSIS, `installer/nsis/PdfBooklet.nsi`) | `installer/nsis/PdfBooklet-<ver>-win-x64-setup.exe` |
+| macOS .dmg | `scripts/Build-Dmg-Installer.sh` (macOS only) | `installer/dmg/PdfBooklet-<ver>-osx-arm64.dmg` |
+
+The `Release` workflow runs on every pushed tag: tests, then the installers in parallel, then a GitHub
+**pre-release** named after the tag. The version is taken from the tag, so keep the tag equal to
+`version.txt` (e.g. `0.1.0.0`). Do not create releases by hand. The macOS bundle is ad-hoc signed only.
+
+The application icon is `src/Assets/pdfbooklet-icon.png` / `.ico`; the installers use it too.
+
 ## Conventions
 
 - ViewModels use `[ObservableProperty]` / `[RelayCommand]` source generators — keep classes `partial`.
