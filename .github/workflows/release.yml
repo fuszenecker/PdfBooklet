@@ -9,7 +9,7 @@ name: Release
 #   build-linux    -> .deb (Ubuntu 26.04) + .rpm (Rocky 10) via Podman
 #   build-windows  -> .exe (NSIS) on a real Windows runner
 #   build-macos    -> .dmg (Apple Silicon) on a macOS runner
-#   release        -> gh release create --prerelease (not latest) with all assets
+#   release        -> gh release create (becomes the latest release) with all assets
 #
 # The Linux installers build on ubuntu-latest using the same Podman pipeline as
 # locally (scripts/Build-Installer.Podman.sh). The Windows installer builds
@@ -163,7 +163,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    name: Create pre-release with all installers
+    name: Create release with all installers
     needs: [build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
     steps:
@@ -204,10 +204,8 @@ jobs:
             echo "Release ${GITHUB_REF_NAME} already exists; refreshing assets."
             gh release upload "${GITHUB_REF_NAME}" --clobber "${files[@]}"
           else
-            # Pre-release: marks it as a pre-release and excludes it from "latest".
             gh release create "${GITHUB_REF_NAME}" \
               --title "${GITHUB_REF_NAME}" \
               --generate-notes \
-              --prerelease \
               "${files[@]}"
           fi
