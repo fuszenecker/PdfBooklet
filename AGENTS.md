@@ -33,7 +33,8 @@ tests/
 - Sheets are always landscape (two pages side by side, fold across the short axis). Page counts are
   padded with blanks at the end to a multiple of 4 per signature.
 - Config lives in `appsettings.json` (bundled defaults) layered with the per-user file
-  (`$XDG_CONFIG_HOME/PdfBooklet` on Linux, `%LocalAppData%\PdfBooklet` on Windows).
+  (`$XDG_CONFIG_HOME/PdfBooklet` or `~/.config/PdfBooklet` on Linux, `%LocalAppData%\PdfBooklet` on Windows,
+  `~/Library/Application Support/PdfBooklet` on macOS; see `ConfigurationPaths`).
   `IConfigurationService` is the only writer.
 
 ## License

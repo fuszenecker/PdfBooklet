@@ -61,7 +61,7 @@ Defaults are in the bundled `appsettings.json`; your changes are saved on top of
 
 - Windows: `%LocalAppData%\PdfBooklet\appsettings.json` (`%AppData%\PdfBooklet` is also read)
 - Linux: `$XDG_CONFIG_HOME/PdfBooklet/appsettings.json`, or `~/.config/PdfBooklet/appsettings.json`
-- macOS: there is no per-user location yet, so settings are not saved between runs
+- macOS: `~/Library/Application Support/PdfBooklet/appsettings.json`
 
 ## Building and testing
 

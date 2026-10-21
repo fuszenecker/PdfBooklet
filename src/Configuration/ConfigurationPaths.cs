@@ -6,13 +6,18 @@ namespace PdfBooklet.Configuration;
 
 public static class ConfigurationPaths
 {
-    public static string[] GetPerUserConfigPaths()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            var roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    public static string[] GetPerUserConfigPaths() => GetPerUserConfigPaths(
+        CurrentPlatform(),
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        Environment.GetEnvironmentVariable("XDG_CONFIG_HOME"));
 
+    internal static string[] GetPerUserConfigPaths(
+        OSPlatform platform, string home, string roaming, string local, string? xdgConfigHome)
+    {
+        if (platform == OSPlatform.Windows)
+        {
             return
             [
                 Path.Combine(roaming, "PdfBooklet", "appsettings.json"),
@@ -20,10 +25,8 @@ public static class ConfigurationPaths
             ];
         }
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (platform == OSPlatform.Linux)
         {
-            var xdgConfigHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var configRoot = !string.IsNullOrWhiteSpace(xdgConfigHome)
                 ? xdgConfigHome
                 : Path.Combine(home, ".config");
@@ -31,6 +34,14 @@ public static class ConfigurationPaths
             return
             [
                 Path.Combine(configRoot, "PdfBooklet", "appsettings.json")
+            ];
+        }
+
+        if (platform == OSPlatform.OSX)
+        {
+            return
+            [
+                Path.Combine(home, "Library", "Application Support", "PdfBooklet", "appsettings.json")
             ];
         }
 
@@ -58,5 +69,20 @@ public static class ConfigurationPaths
         return string.IsNullOrWhiteSpace(directory)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PdfBooklet")
             : directory;
+    }
+
+    private static OSPlatform CurrentPlatform()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return OSPlatform.Windows;
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return OSPlatform.Linux;
+        }
+
+        return RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? OSPlatform.OSX : OSPlatform.Create("OTHER");
     }
 }
