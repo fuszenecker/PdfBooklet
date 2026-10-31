@@ -2,6 +2,11 @@
 
 The notes of every release, the newest first. A section belongs to a version without its BUILD number (`## 1.1.0`): the releases of the same code (1.1.0.0, 1.1.0.1, …) share it. The release workflow puts the section of the tag into the GitHub release, with the downloads, and refuses a tag that has no section; CI fails when the version in `version.txt` has none. A paragraph or an item is one line: GitHub shows every line break of a release.
 
+## 1.2.0
+
+- **Make a booklet from part of the PDF.** Type the pages into the new *Pages* field above the preview: single pages and ranges separated by commas, in the order they should appear in the booklet, e.g. `5-12` or `1-4, 7, 10-` (`10-` runs to the last page). Leave it empty for all pages, as before. The preview follows while you type, the summary shows how many of the pages are used, and a selection that cannot work (a page the PDF does not have, a range that ends before it starts) shows the reason and disables Export. The selection is cleared when another PDF is imported; it is not stored with the settings.
+- The top of the main window has more room, and long file names wrap instead of running off the window.
+
 ## 1.1.1
 
 - The settings files explain themselves: every section and every setting of `settings.prmt` carries a comment with its meaning, its unit and its allowed values or range (e.g. "The width of a Custom sheet, in mm (50 to 2000)"). Promptuarium's `pedit` and PStudio show the comments; the per-user file gets them the next time the settings are saved. The settings themselves are unchanged and kept.
