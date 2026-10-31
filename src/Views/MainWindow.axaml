@@ -18,7 +18,8 @@
             <TextBlock Text="{Binding StatusMessage}"/>
         </Border>
 
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="12,12,12,16">
+        <DockPanel DockPanel.Dock="Top" Margin="12,20,16,16">
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                 <Button Classes="tool" Command="{Binding OpenPdfCommand}" ToolTip.Tip="Import PDF" AutomationProperties.Name="Import PDF">
                     <Viewbox Width="32" Height="32">
                         <Canvas Width="24" Height="24">
@@ -42,9 +43,11 @@
                         </Canvas>
                     </Viewbox>
                 </Button>
+            </StackPanel>
 
-            <StackPanel VerticalAlignment="Center" Margin="8,0,0,0" Spacing="6">
-                <TextBlock Text="{Binding SourceSummary}" FontWeight="SemiBold"/>
+            <!-- Fills the rest of the width, so long file names and summaries wrap instead of running off the window. -->
+            <StackPanel VerticalAlignment="Center" Margin="18,0,0,0" Spacing="6">
+                <TextBlock Text="{Binding SourceSummary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                 <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,4" IsEnabled="{Binding HasSource}">
                     <TextBlock Text="Pages:" VerticalAlignment="Center"/>
                     <TextBox Text="{Binding PageRange}" Width="220"
@@ -55,7 +58,7 @@
                 <TextBlock Text="{Binding LayoutSummary}" TextWrapping="Wrap"/>
                 <TextBlock Text="{Binding ValidationMessage}" IsVisible="{Binding HasValidationMessage}" Foreground="#E5484D" TextWrapping="Wrap"/>
             </StackPanel>
-        </StackPanel>
+        </DockPanel>
 
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="0,8">
             <Button Content="◀" Command="{Binding PreviousSheetCommand}" MinWidth="40" HorizontalContentAlignment="Center"/>
