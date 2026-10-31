@@ -81,9 +81,21 @@ The NSIS installer removes a previous installation first and optionally adds Pdf
 | Windows .exe | `scripts/Build-Installer.ps1` (PowerShell 7 + NSIS, `packaging/windows/PdfBooklet.nsi`; also runs on Linux) | `installer/nsis/PdfBooklet-<ver>-win-x64-setup.exe` |
 | macOS .dmg | `scripts/Build-Dmg-Installer.sh` (macOS only) | `installer/dmg/PdfBooklet-<ver>-osx-arm64.dmg` |
 
-The `Release` workflow runs on every pushed tag: tests, then the installers in parallel, then a GitHub
-release named after the tag (it becomes the repository's latest release). The version is taken from the tag, so keep the tag equal to
-`version.txt` (e.g. `0.1.0.0`). Do not create releases by hand. The macOS bundle is ad-hoc signed only.
+**Every release has proper release notes.** Releasing a version:
+
+1. Bump `version.txt`.
+2. Write the notes in `RELEASE_NOTES.md`: a section for the version without its BUILD number (`## 1.1.0`), newest
+   first, describing what changed **for the user** (features, fixes, upgrade consequences such as settings being
+   reset), one line per paragraph or item (GitHub shows every line break). Releases of the same code share a
+   section. Check with `scripts/Release-Notes.sh <version>`. CI fails when `version.txt` has no notes.
+3. Commit, tag with the version (`git tag 1.1.0.0`) and push the branch and the tag.
+
+The `Release` workflow runs on every pushed tag: it checks that the tag equals `version.txt` and has notes, runs the
+tests, builds the installers in parallel, then creates a GitHub release named after the tag (the latest release)
+whose text is the notes of the version, the downloads with install instructions, and the full-changelog link. Do not
+create releases by hand. Verify the run succeeded and the release has its notes and all four installers. If the
+notes of a published release change, update it too (`gh release edit <tag> --notes-file ...`, same format). The
+macOS bundle is ad-hoc signed only.
 
 The application icon is `src/Assets/pdfbooklet-icon.png` / `.ico`; the installers use it too.
 

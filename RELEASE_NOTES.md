@@ -1,0 +1,34 @@
+# Release notes
+
+The notes of every release, the newest first. A section belongs to a version without its BUILD number (`## 1.1.0`): the releases of the same code (1.1.0.0, 1.1.0.1, …) share it. The release workflow puts the section of the tag into the GitHub release, with the downloads, and refuses a tag that has no section; CI fails when the version in `version.txt` has none. A paragraph or an item is one line: GitHub shows every line break of a release.
+
+## 1.1.0
+
+The settings are stored in a Promptuarium container instead of a JSON file, and the installers are reworked.
+
+- **The settings start from the defaults after upgrading.** They move from the per-user `appsettings.json` to `settings.prmt`, a [Promptuarium](https://github.com/fuszenecker/Promptuarium) container in the `PRMT:CFG1-LE` format, written by [Promptuarium.Serializer](https://www.nuget.org/packages/Promptuarium.Serializer/) ([SERIALIZER_FORMAT.md](https://github.com/fuszenecker/Promptuarium/blob/master/SERIALIZER_FORMAT.md)). The old file is not read. Promptuarium's `pedit` and PStudio can show and edit the new one.
+- The bundled defaults are a `settings.prmt` too, in the application directory; the per-user file is applied on top of them.
+- **Linux:** the packages install PdfBooklet to `/usr/lib/pdfbooklet` (instead of `/opt/pdfbooklet`), still started with `pdfbooklet`. PdfBooklet is offered in "Open with" for PDF files. The packages carry the copyright and a changelog, and no debug symbols.
+- **Windows:** the installer removes the previous installation first, so no file of an older version stays behind. It can offer PdfBooklet in "Open with" for PDF files (the default PDF application is not changed). The desktop shortcut is optional and off by default; the Start Menu has a single PdfBooklet entry (uninstall it in Apps). The setup program carries its version.
+
+## 1.0.1
+
+- **Fix: macOS remembers the settings.** There was no per-user settings location on macOS, so every start began with the defaults; the settings are now saved to `~/Library/Application Support/PdfBooklet`.
+- A user guide, [`PdfBooklet-guide.pdf`](https://github.com/fuszenecker/PdfBooklet/blob/1.0.1.0/docs/PdfBooklet-guide.pdf): eight pages, so it is also a sample to try PdfBooklet and the printer with (two sheets, no blank pages), with a checklist on its last page. The README describes installing, using and printing.
+- Releases are stable releases from now on, and the newest one is marked as the latest.
+
+## 1.0.0
+
+- **Manual duplex** for single-sided printers (Settings → Output PDF): the exported PDF has all the fronts first, then all the backs in reverse order. Print the first half, turn the printed stack over, feed it back in, and print the second half.
+
+## 0.1.0
+
+The first release of PdfBooklet: it turns a PDF into a print-ready 2-up booklet.
+
+- Three buttons: import a PDF, settings, export the booklet. The live preview shows the front and the back of every sheet, exactly as they are exported; the blank pages that fill up the last sheet are dashed.
+- Sheets A3, A4, A5, Letter, Legal, Tabloid or a custom size, always landscape with two pages side by side.
+- Binding on the left or on the right (right-to-left books), and signatures: a long document folded in separate groups of a multiple of 4 pages.
+- Top, bottom, inner and outer margins; fit to the area, actual size or a custom scale; horizontal and vertical alignment.
+- Output PDF version 1.4–1.7 and stream compression. The original file is never modified.
+- The settings are remembered between runs (on Windows and Linux), and `pdfbooklet file.pdf` opens a file at startup.
+- 0.1.0.0 came as self-contained archives; 0.1.0.1 adds the installers (Debian/Ubuntu `.deb`, Fedora/RHEL/Rocky `.rpm`, Windows setup, macOS disk image), the application icon, and the AGPL license in every installer.

@@ -6,10 +6,13 @@ name: Release
 # The build jobs run in parallel and the release job waits for all of them, so a
 # release is only created once every installer has built successfully.
 #
+#   check          -> the tag is the version of version.txt, and RELEASE_NOTES.md has its notes
+#   test           -> the tests
 #   build-linux    -> .deb (Ubuntu 26.04) + .rpm (Rocky 10) via Podman
 #   build-windows  -> .exe (NSIS) on a real Windows runner
 #   build-macos    -> .dmg (Apple Silicon) on a macOS runner
-#   release        -> gh release create (becomes the latest release) with all assets
+#   release        -> gh release create (becomes the latest release) with the notes of the version
+#                     (RELEASE_NOTES.md, via scripts/Release-Notes.sh), the downloads and all assets
 #
 # The Linux installers build on ubuntu-latest using the same Podman pipeline as
 # locally (scripts/Build-Installer.Podman.sh). The Windows installer builds
@@ -33,8 +36,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:
+    name: Version and release notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The scripts name the installers after the version, so the tag must be the version of version.txt
+      - name: Check the version
+        run: |
+          set -eu
+          version="$(tr -d '[:space:]' < version.txt)"
+          if [ "${version}" != "${GITHUB_REF_NAME#v}" ]; then
+            echo "::error::The tag (${GITHUB_REF_NAME}) is not the version of version.txt (${version})."
+            exit 1
+          fi
+
+      # No release without notes: the tag needs a section in RELEASE_NOTES.md
+      - name: Extract the notes of the version
+        run: |
+          ./scripts/Release-Notes.sh "${GITHUB_REF_NAME}" > release-notes.md
+          cat release-notes.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
   test:
     name: Test
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -169,6 +201,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download all installer artifacts
         uses: actions/download-artifact@v4
@@ -194,6 +228,32 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
+      # The notes of the version, then the downloads (with how to install them)
+      - name: Compose the release notes
+        run: |
+          set -eu
+          version="${GITHUB_REF_NAME#v}"
+          # The tag before this one, in version order
+          previous="$(git tag --list --sort=v:refname | awk -v tag="${GITHUB_REF_NAME}" '$0 == tag { print prev; exit } { prev = $0 }')"
+          {
+            cat artifacts/release-notes/release-notes.md
+            echo
+            echo "### Downloads"
+            echo
+            echo "- **Windows** (x64): \`PdfBooklet-${version}-win-x64-setup.exe\`, the installer. It is not signed: if SmartScreen warns, choose More info → Run anyway."
+            echo "- **Debian, Ubuntu** (x64): \`sudo apt install ./pdfbooklet_${version}_amd64.deb\`"
+            echo "- **Fedora, RHEL, Rocky** (x64): \`sudo dnf install ./pdfbooklet-${version}-1.el10.x86_64.rpm\`"
+            echo "- **macOS** (Apple Silicon): \`PdfBooklet-${version}-osx-arm64.dmg\`, drag the app to Applications. It is only ad-hoc signed: open it the first time with right-click → Open."
+            echo
+            echo "No .NET is needed: every installer is self-contained."
+            if [ -n "${previous}" ]; then
+              echo
+              echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${previous}...${GITHUB_REF_NAME}"
+            fi
+          } > release-notes-full.md
+          cat release-notes-full.md
+
+      # A release of an existing tag gets the new notes and installers
       - name: Create release and upload installers
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -201,11 +261,13 @@ jobs:
           set -eu
           mapfile -t files < <(printf '%s\n' '${{ steps.files.outputs.files }}')
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            echo "Release ${GITHUB_REF_NAME} already exists; refreshing assets."
+            echo "Release ${GITHUB_REF_NAME} already exists; refreshing notes and assets."
+            gh release edit "${GITHUB_REF_NAME}" --notes-file release-notes-full.md
             gh release upload "${GITHUB_REF_NAME}" --clobber "${files[@]}"
           else
             gh release create "${GITHUB_REF_NAME}" \
               --title "${GITHUB_REF_NAME}" \
-              --generate-notes \
+              --notes-file release-notes-full.md \
+              --latest \
               "${files[@]}"
           fi

@@ -87,7 +87,7 @@ The scripts in `scripts/` build the installers and read the version from `versio
 | Windows installer | `scripts/Build-Installer.ps1` | PowerShell 7, [NSIS](https://nsis.sourceforge.io/) (also runs on Linux with `makensis`) |
 | macOS disk image | `scripts/Build-Dmg-Installer.sh` | macOS |
 
-Pushing a tag (for example `1.0.0.0`) runs the `Release` workflow: it runs the tests, builds all four installers and publishes them as a GitHub release. Keep the tag equal to `version.txt`.
+Pushing a tag (for example `1.1.0.0`) runs the `Release` workflow: it runs the tests, builds all four installers and publishes them as a GitHub release, with the notes of the version from [`RELEASE_NOTES.md`](RELEASE_NOTES.md). Keep the tag equal to `version.txt`, and write the notes before tagging: a tag without notes is refused.
 
 ## Project structure
 

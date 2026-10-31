@@ -15,6 +15,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      # A release is refused without notes, so the version being prepared must have them before it is tagged
+      - name: Release notes of version.txt
+        run: ./scripts/Release-Notes.sh "$(cat version.txt)"
       - name: Restore dependencies
         run: dotnet restore PdfBooklet.slnx
       - name: Build
