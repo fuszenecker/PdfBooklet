@@ -39,6 +39,9 @@ tests/
   (`$XDG_CONFIG_HOME/PdfBooklet` or `~/.config/PdfBooklet` on Linux, `%LocalAppData%\PdfBooklet` on Windows,
   `~/Library/Application Support/PdfBooklet` on macOS; see `ConfigurationPaths`) is applied onto it with `Populate`.
   There is no `appsettings.json` and no migration from the old JSON files. `IConfigurationService` is the only writer.
+- Every settings class and property carries a `[PromptuariumComment]` (unit, allowed values or range, meaning), written
+  into the containers as COMMENT nodes for people reading them with `pedit`/PStudio; readers ignore them. A new or
+  changed setting gets its comment too.
 - `src/settings.prmt` is a committed binary file: the serialized `new AppConfiguration()`. A test checks that it
   matches the code defaults; after changing a setting or its default, regenerate it (serialize `new AppConfiguration()`
   with `ConfigurationFormat.Options`, e.g. from a `dotnet run` file-based script with `#:project src/PdfBooklet.csproj`).
