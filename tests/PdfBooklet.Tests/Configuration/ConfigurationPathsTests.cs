@@ -17,7 +17,7 @@ public sealed class ConfigurationPathsTests
         var paths = Paths(OSPlatform.OSX);
 
         CollectionAssert.AreEqual(
-            new[] { Expected("/home/u", "Library", "Application Support", "PdfBooklet", "appsettings.json") },
+            new[] { Expected("/home/u", "Library", "Application Support", "PdfBooklet", "settings.prmt") },
             paths);
     }
 
@@ -33,7 +33,7 @@ public sealed class ConfigurationPathsTests
     public void Linux_UsesXdgConfigHomeWhenSet()
     {
         CollectionAssert.AreEqual(
-            new[] { Expected("/custom", "PdfBooklet", "appsettings.json") },
+            new[] { Expected("/custom", "PdfBooklet", "settings.prmt") },
             Paths(OSPlatform.Linux, xdg: "/custom"));
     }
 
@@ -44,7 +44,7 @@ public sealed class ConfigurationPathsTests
     public void Linux_FallsBackToDotConfig(string? xdg)
     {
         CollectionAssert.AreEqual(
-            new[] { Expected("/home/u", ".config", "PdfBooklet", "appsettings.json") },
+            new[] { Expected("/home/u", ".config", "PdfBooklet", "settings.prmt") },
             Paths(OSPlatform.Linux, xdg));
     }
 
@@ -56,8 +56,8 @@ public sealed class ConfigurationPathsTests
         CollectionAssert.AreEqual(
             new[]
             {
-                Expected("/roaming", "PdfBooklet", "appsettings.json"),
-                Expected("/local", "PdfBooklet", "appsettings.json"),
+                Expected("/roaming", "PdfBooklet", "settings.prmt"),
+                Expected("/local", "PdfBooklet", "settings.prmt"),
             },
             paths);
     }

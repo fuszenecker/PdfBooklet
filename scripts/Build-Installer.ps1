@@ -1,168 +1,84 @@
-#Requires -Version 5.1
+#Requires -Version 7
 <#
 .SYNOPSIS
-    Publishes PdfBooklet and builds the NSIS Windows installer.
+    Publishes PdfBooklet for Windows (win-x64, self-contained, no .NET needed) and builds the NSIS installer.
+
+.DESCRIPTION
+    The release workflow runs it on a Windows runner: only a build on Windows puts the icon and the version into
+    PdfBooklet.exe. It also runs on Linux (with makensis from the nsis package), e.g. to check the installer script;
+    PdfBooklet.exe then has the default icon.
 
 .PARAMETER Version
-    Version string to embed in the installer (e.g. "1.2.0").
-    Defaults to the value in version.txt at the repository root.
+    The version (e.g. 1.0.1.0). Defaults to version.txt.
 
-.PARAMETER Runtime
-    .NET runtime identifier to publish for. Defaults to "win-x64".
-
-.PARAMETER SkipPublish
-    Skip the dotnet publish step (use an existing publish output).
+.PARAMETER Output
+    The folder of the installer. Defaults to installer/nsis/ in the repository.
 
 .EXAMPLE
-    .\Build-Installer.ps1
-    .\Build-Installer.ps1 -Version "1.2.0"
-    .\Build-Installer.ps1 -Version "1.2.0" -SkipPublish
+    scripts/Build-Installer.ps1 -Version 1.0.1.0
 #>
 [CmdletBinding()]
 param(
     [string] $Version,
-    [string] $Runtime     = "win-x64",
-    [switch] $SkipPublish
+    [string] $Output
 )
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
-# ---------------------------------------------------------------------------
-# Paths (all relative to the repository root, one level above this script)
-# ---------------------------------------------------------------------------
-$RepoRoot    = (Resolve-Path "$PSScriptRoot\..").Path
-$ProjectFile = Join-Path $RepoRoot "src\PdfBooklet.csproj"
-$NsiFile     = Join-Path $RepoRoot "installer\nsis\PdfBooklet.nsi"
-$PublishDir  = Join-Path $RepoRoot "publish\$Runtime"
-$OutputDir   = Join-Path $RepoRoot "installer\nsis"
-$VersionFile = Join-Path $RepoRoot "version.txt"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$Project = Join-Path $RepoRoot 'src/PdfBooklet.csproj'
+$ScriptDir = Join-Path $RepoRoot 'packaging/windows'
+$Script = Join-Path $ScriptDir 'PdfBooklet.nsi'
+$Publish = Join-Path $RepoRoot 'publish/win-x64'
+$Output = if ($Output) { [IO.Path]::GetFullPath($Output) } else { Join-Path $RepoRoot 'installer/nsis' }
 
-# ---------------------------------------------------------------------------
-# Resolve version
-# ---------------------------------------------------------------------------
 if (-not $Version) {
-    if (-not (Test-Path $VersionFile)) {
-        Write-Error "version.txt not found at '$VersionFile'. Create it or pass -Version explicitly."
-    }
-    $Version = (Get-Content $VersionFile -Raw).Trim()
-    if (-not $Version) {
-        Write-Error "version.txt is empty. Add a version string (e.g. 1.0.0) and try again."
-    }
+    $Version = (Get-Content (Join-Path $RepoRoot 'version.txt') -Raw).Trim()
 }
-Write-Host ""
-Write-Host "==> Version: $Version" -ForegroundColor Cyan
+if (-not $Version) { throw 'The version is empty: update version.txt or pass -Version.' }
 
-# ---------------------------------------------------------------------------
-# Validate tools
-# ---------------------------------------------------------------------------
-function Resolve-Tool {
-    param([string]$Name)
-    $cmd = Get-Command $Name -ErrorAction SilentlyContinue
-    if ($cmd) { return $cmd.Source }
-    return $null
-}
+# The file version has four numbers and no pre-release suffix: 1.1.0-beta.1 is 1.1.0.0
+$Numbers = ($Version -split '[-+]')[0].Split('.')
+$FileVersion = (@($Numbers) + @('0', '0', '0', '0'))[0..3] -join '.'
 
-function Resolve-Makensis {
-    # 1. Try PATH first
-    $onPath = Resolve-Tool "makensis"
-    if ($onPath) { return $onPath }
+function Find-Makensis {
+    $command = Get-Command makensis -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
 
-    # 2. Common default NSIS install locations
-    $candidates = @(
-        "$env:ProgramFiles\NSIS\makensis.exe",
-        "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
-        "$env:ProgramFiles\NSIS\Unicode\makensis.exe",
-        "${env:ProgramFiles(x86)}\NSIS\Unicode\makensis.exe"
-    )
-    foreach ($path in $candidates) {
-        if (Test-Path $path) { return $path }
+    foreach ($candidate in "${env:ProgramFiles(x86)}\NSIS\makensis.exe", "$env:ProgramFiles\NSIS\makensis.exe") {
+        if ($candidate -and (Test-Path $candidate)) { return $candidate }
     }
 
-    Write-Error @"
-'makensis' was not found on PATH or in the default NSIS install directories.
-Please install NSIS from https://nsis.sourceforge.io/Download and try again,
-or add its directory to your PATH.
-"@
+    throw 'makensis was not found: install NSIS (https://nsis.sourceforge.io, choco install nsis, or apt install nsis).'
 }
 
-$DotnetExe   = Resolve-Tool "dotnet"
-if (-not $DotnetExe) {
-    Write-Error "'dotnet' was not found on PATH. Please install the .NET SDK and try again."
-}
-$MakensisExe = Resolve-Makensis
+$Makensis = Find-Makensis
 
-# ---------------------------------------------------------------------------
-# Publish the application
-# ---------------------------------------------------------------------------
-if (-not $SkipPublish) {
-    Write-Host ""
-    Write-Host "==> Publishing $Runtime ..." -ForegroundColor Cyan
+if (Test-Path $Publish) { Remove-Item -Recurse -Force $Publish }
 
-    $publishArgs = @(
-        "publish", $ProjectFile,
-        "-c", "Release",
-        "-r", $Runtime,
-        "--self-contained", "true",
-        "-p:Version=$Version",
-        "-p:AssemblyVersion=$Version",
-        "-p:FileVersion=$Version",
-        "-o", $PublishDir
-    )
+Write-Host "==> Publishing PdfBooklet $Version (win-x64, self-contained)"
+& dotnet publish $Project -c Release -r win-x64 --self-contained true `
+    -p:Version=$Version -p:FileVersion=$FileVersion -p:AssemblyVersion=$FileVersion -p:DebugType=none `
+    -o $Publish
+if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed ($LASTEXITCODE)." }
 
-    & $DotnetExe @publishArgs
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "dotnet publish failed with exit code $LASTEXITCODE."
-    }
+# The native libraries bring their debug symbols, which an installer does not need
+Get-ChildItem $Publish -Filter *.pdb -Recurse | Remove-Item
 
-    Write-Host "    Published to: $PublishDir" -ForegroundColor Green
-} else {
-    Write-Host ""
-    Write-Host "==> Skipping publish (using existing output in $PublishDir)" -ForegroundColor Yellow
-    if (-not (Test-Path $PublishDir)) {
-        Write-Error "Publish directory not found: $PublishDir"
-    }
-}
+Write-Host '==> Building the installer'
+New-Item -ItemType Directory -Force $Output | Out-Null
+$Installer = Join-Path $Output "PdfBooklet-$Version-win-x64-setup.exe"
 
-# ---------------------------------------------------------------------------
-# Build NSIS installer
-# ---------------------------------------------------------------------------
-Write-Host ""
-Write-Host "==> Running NSIS ..." -ForegroundColor Cyan
-
-$nsisArgs = @(
-    # -D works on both Windows and Linux makensis (/D is Windows-only).
-    "-DAPP_VERSION=$Version",
-    $NsiFile
-)
-
-Write-Host "    Using APP_VERSION=$Version" -ForegroundColor Yellow
-
-Push-Location $OutputDir
+# -D works with makensis on Windows and on Linux; the script finds its other files relative to itself
+Push-Location $ScriptDir
 try {
-    & $MakensisExe @nsisArgs
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "makensis failed with exit code $LASTEXITCODE."
-    }
-} finally {
+    & $Makensis -V2 "-DAPP_VERSION=$Version" "-DVI_VERSION=$FileVersion" "-DPUBLISH_DIR=$Publish" "-DOUT_FILE=$Installer" $Script
+    if ($LASTEXITCODE -ne 0) { throw "makensis failed ($LASTEXITCODE)." }
+}
+finally {
     Pop-Location
 }
 
-# ---------------------------------------------------------------------------
-# Report output
-# ---------------------------------------------------------------------------
-$EffectiveVersion = $Version
-
-$InstallerFile = Join-Path $OutputDir "PdfBooklet-$EffectiveVersion-$Runtime-setup.exe"
-
-Write-Host ""
-if (Test-Path $InstallerFile) {
-    $size = [math]::Round((Get-Item $InstallerFile).Length / 1MB, 2)
-    Write-Host "==> Installer created successfully!" -ForegroundColor Green
-    Write-Host "    $InstallerFile ($size MB)" -ForegroundColor Green
-} else {
-    Write-Warning "Build completed but installer file not found at expected path:"
-    Write-Warning "    $InstallerFile"
-    Write-Warning "Check the NSIS output above for the actual filename."
-}
-Write-Host ""
+$Size = [math]::Round((Get-Item $Installer).Length / 1MB, 1)
+Write-Host "==> $Installer ($Size MB)"

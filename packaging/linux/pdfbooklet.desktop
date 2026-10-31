@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PdfBooklet
+GenericName=Booklet Maker
+Comment=Turn a PDF into a print-ready 2-up booklet
+Exec=pdfbooklet %f
+Icon=pdfbooklet
+Terminal=false
+Categories=Office;Publishing;
+MimeType=application/pdf;
+Keywords=PDF;booklet;imposition;print;duplex;

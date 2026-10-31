@@ -18,7 +18,7 @@ src/
   Interfaces/      # Abstractions injected via Microsoft.Extensions.DependencyInjection
   Exceptions/      # Exceptions thrown across layer boundaries
   Models/          # Plain data records (PdfSourceInfo, BookletPlan, ...)
-  Configuration/   # Strongly-typed settings bound from appsettings.json
+  Configuration/   # Strongly-typed settings read from settings.prmt
   Composition/     # DI registration (ServiceCollectionExtensions)
 tests/
   PdfBooklet.Tests/   # MSTest + NSubstitute; folders mirror src/
@@ -32,10 +32,16 @@ tests/
   single-sided printers where the printed stack is turned over and fed back in.
 - Sheets are always landscape (two pages side by side, fold across the short axis). Page counts are
   padded with blanks at the end to a multiple of 4 per signature.
-- Config lives in `appsettings.json` (bundled defaults) layered with the per-user file
+- Settings files are **Promptuarium containers** (`PRMT:CFG1-LE`, layout in Promptuarium's `SERIALIZER_FORMAT.md`),
+  read and written by `PromptuariumSerializer` (package `Promptuarium.Serializer`, experimental: the projects opt in
+  with `NoWarn` `PRMTSER000`) with `Configuration/ConfigurationFormat.Options`. Layering: the bundled
+  `src/settings.prmt` (all defaults) is deserialized, then each per-user `settings.prmt`
   (`$XDG_CONFIG_HOME/PdfBooklet` or `~/.config/PdfBooklet` on Linux, `%LocalAppData%\PdfBooklet` on Windows,
-  `~/Library/Application Support/PdfBooklet` on macOS; see `ConfigurationPaths`).
-  `IConfigurationService` is the only writer.
+  `~/Library/Application Support/PdfBooklet` on macOS; see `ConfigurationPaths`) is applied onto it with `Populate`.
+  There is no `appsettings.json` and no migration from the old JSON files. `IConfigurationService` is the only writer.
+- `src/settings.prmt` is a committed binary file: the serialized `new AppConfiguration()`. A test checks that it
+  matches the code defaults; after changing a setting or its default, regenerate it (serialize `new AppConfiguration()`
+  with `ConfigurationFormat.Options`, e.g. from a `dotnet run` file-based script with `#:project src/PdfBooklet.csproj`).
 
 ## License
 
@@ -59,15 +65,20 @@ dotnet run --project src/PdfBooklet.csproj -- path/to/file.pdf   # optional file
 
 ## Packaging and releases
 
-Installer scripts live in `scripts/` (ported from PentaGrammata) and read the version from `version.txt`
-unless `--version` is given; `.csproj` carries no version. Outputs go to `installer/` (git-ignored).
+Installer scripts live in `scripts/` (deb, rpm and NSIS modelled on Promptuarium's PStudio packaging) and read the
+version from `version.txt` unless `--version` is given; `.csproj` carries no version. The files they package are in
+`packaging/` (`linux/pdfbooklet.desktop`, `linux/lintian-overrides`, `windows/PdfBooklet.nsi`). Outputs go to
+`installer/` (git-ignored). The Linux packages put the self-contained build in `/usr/lib/pdfbooklet` (no `.pdb`)
+with a `/usr/bin/pdfbooklet` launcher; the desktop entry lists `application/pdf` so PdfBooklet shows up in "Open with".
+The NSIS installer removes a previous installation first and optionally adds PdfBooklet to "Open with" for `.pdf`
+(never the default program).
 
 | Platform | Script | Output |
 |---|---|---|
 | Linux .deb | `scripts/Build-Deb-Installer.sh` | `installer/deb/pdfbooklet_<ver>_amd64.deb` |
 | Linux .rpm | `scripts/Build-Rpm-Installer.sh` | `installer/rpm/x86_64/pdfbooklet-<ver>-1.el10.x86_64.rpm` |
 | Linux both, in Podman | `scripts/Build-Installer.Podman.sh` | builds on Ubuntu 26.04 / Rocky 10 images from `container/` |
-| Windows .exe | `scripts/Build-Installer.ps1` (NSIS, `installer/nsis/PdfBooklet.nsi`) | `installer/nsis/PdfBooklet-<ver>-win-x64-setup.exe` |
+| Windows .exe | `scripts/Build-Installer.ps1` (PowerShell 7 + NSIS, `packaging/windows/PdfBooklet.nsi`; also runs on Linux) | `installer/nsis/PdfBooklet-<ver>-win-x64-setup.exe` |
 | macOS .dmg | `scripts/Build-Dmg-Installer.sh` (macOS only) | `installer/dmg/PdfBooklet-<ver>-osx-arm64.dmg` |
 
 The `Release` workflow runs on every pushed tag: tests, then the installers in parallel, then a GitHub

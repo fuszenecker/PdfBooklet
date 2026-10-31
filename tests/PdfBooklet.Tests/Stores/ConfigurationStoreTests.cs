@@ -3,6 +3,7 @@ using NSubstitute;
 using PdfBooklet.Configuration;
 using PdfBooklet.Interfaces;
 using PdfBooklet.Stores;
+using Promptuarium.Serializer;
 
 namespace PdfBooklet.Tests.Stores;
 
@@ -17,7 +18,7 @@ public sealed class ConfigurationStoreTests
     {
         _directory = Path.Combine(Path.GetTempPath(), "pdfbooklet-store-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_directory);
-        _userConfig = Path.Combine(_directory, "config", "appsettings.json");
+        _userConfig = Path.Combine(_directory, "config", "settings.prmt");
     }
 
     [TestCleanup]
@@ -39,6 +40,30 @@ public sealed class ConfigurationStoreTests
         Assert.AreEqual(PaperSize.A4, config.Sheet.PaperSize);
         Assert.AreEqual(ScaleMode.FitToArea, config.Layout.ScaleMode);
         Assert.AreEqual(PdfVersion.Pdf17, config.Output.PdfVersion);
+    }
+
+    [TestMethod]
+    public void BundledDefaults_MatchTheCodeDefaults()
+    {
+        // The committed src/settings.prmt must be the serialized AppConfiguration defaults;
+        // regenerate it when a setting or its default changes.
+        var bundled = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, ConfigurationPaths.SettingsFileName));
+
+        CollectionAssert.AreEqual(
+            PromptuariumSerializer.Serialize(new AppConfiguration(), ConfigurationFormat.Options),
+            bundled);
+    }
+
+    [TestMethod]
+    public async Task Save_WritesAConfigurationContainer()
+    {
+        await CreateStore(_userConfig).SaveAsync(new AppConfiguration());
+
+        var bytes = File.ReadAllBytes(_userConfig);
+        var loaded = PromptuariumSerializer.Deserialize<AppConfiguration>(bytes, ConfigurationFormat.Options);
+
+        Assert.IsNotNull(loaded);
+        Assert.AreEqual(PaperSize.A4, loaded.Sheet.PaperSize);
     }
 
     [TestMethod]
@@ -70,7 +95,7 @@ public sealed class ConfigurationStoreTests
         await CreateStore(_userConfig).SaveAsync(new AppConfiguration());
 
         CollectionAssert.AreEqual(
-            new[] { "appsettings.json" },
+            new[] { "settings.prmt" },
             Directory.EnumerateFiles(Path.GetDirectoryName(_userConfig)!).Select(Path.GetFileName).ToArray());
     }
 

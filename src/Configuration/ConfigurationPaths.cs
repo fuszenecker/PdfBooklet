@@ -6,6 +6,9 @@ namespace PdfBooklet.Configuration;
 
 public static class ConfigurationPaths
 {
+    /// <summary>The name of the bundled defaults and of every per-user settings file.</summary>
+    public const string SettingsFileName = "settings.prmt";
+
     public static string[] GetPerUserConfigPaths() => GetPerUserConfigPaths(
         CurrentPlatform(),
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -20,8 +23,8 @@ public static class ConfigurationPaths
         {
             return
             [
-                Path.Combine(roaming, "PdfBooklet", "appsettings.json"),
-                Path.Combine(local, "PdfBooklet", "appsettings.json")
+                Path.Combine(roaming, "PdfBooklet", SettingsFileName),
+                Path.Combine(local, "PdfBooklet", SettingsFileName)
             ];
         }
 
@@ -33,7 +36,7 @@ public static class ConfigurationPaths
 
             return
             [
-                Path.Combine(configRoot, "PdfBooklet", "appsettings.json")
+                Path.Combine(configRoot, "PdfBooklet", SettingsFileName)
             ];
         }
 
@@ -41,7 +44,7 @@ public static class ConfigurationPaths
         {
             return
             [
-                Path.Combine(home, "Library", "Application Support", "PdfBooklet", "appsettings.json")
+                Path.Combine(home, "Library", "Application Support", "PdfBooklet", SettingsFileName)
             ];
         }
 

@@ -57,11 +57,13 @@ python3 docs/make-guide.py
 
 ## Configuration
 
-Defaults are in the bundled `appsettings.json`; your changes are saved on top of it in a per-user file:
+The settings are binary [Promptuarium](https://github.com/fuszenecker/Promptuarium) containers (`PRMT:CFG1-LE`, written by [Promptuarium.Serializer](https://github.com/fuszenecker/Promptuarium/blob/master/src/Promptuarium.Serializer/README.md)); view or edit them with Promptuarium's `pedit` or PStudio. The defaults are in the bundled `settings.prmt` in the application directory; your changes are saved on top of it in a per-user `settings.prmt`:
 
-- Windows: `%LocalAppData%\PdfBooklet\appsettings.json` (`%AppData%\PdfBooklet` is also read)
-- Linux: `$XDG_CONFIG_HOME/PdfBooklet/appsettings.json`, or `~/.config/PdfBooklet/appsettings.json`
-- macOS: `~/Library/Application Support/PdfBooklet/appsettings.json`
+- Windows: `%LocalAppData%\PdfBooklet\settings.prmt` (`%AppData%\PdfBooklet` is also read)
+- Linux: `$XDG_CONFIG_HOME/PdfBooklet/settings.prmt`, or `~/.config/PdfBooklet/settings.prmt`
+- macOS: `~/Library/Application Support/PdfBooklet/settings.prmt`
+
+Settings files of earlier versions (`appsettings.json`) are not read.
 
 ## Building and testing
 
@@ -75,14 +77,14 @@ dotnet run --project src/PdfBooklet.csproj -- path/to/file.pdf
 
 ## Packaging and releases
 
-The scripts in `scripts/` build the installers and read the version from `version.txt`; outputs go to `installer/`.
+The scripts in `scripts/` build the installers and read the version from `version.txt`; the static files they package (desktop entry, NSIS script) are in `packaging/`, and the outputs go to `installer/`. The Linux packages install to `/usr/lib/pdfbooklet` with a `pdfbooklet` launcher and offer PdfBooklet in "Open with" for PDF files; the Windows installer optionally does the same, without changing the default PDF application.
 
 | Platform | Script | Needs |
 |---|---|---|
 | Debian package | `scripts/Build-Deb-Installer.sh` | `dpkg-deb` |
 | RPM package | `scripts/Build-Rpm-Installer.sh` | `rpmbuild` |
 | Both Linux packages in containers | `scripts/Build-Installer.Podman.sh` | `podman` only |
-| Windows installer | `scripts/Build-Installer.ps1` | [NSIS](https://nsis.sourceforge.io/) |
+| Windows installer | `scripts/Build-Installer.ps1` | PowerShell 7, [NSIS](https://nsis.sourceforge.io/) (also runs on Linux with `makensis`) |
 | macOS disk image | `scripts/Build-Dmg-Installer.sh` | macOS |
 
 Pushing a tag (for example `1.0.0.0`) runs the `Release` workflow: it runs the tests, builds all four installers and publishes them as a GitHub release. Keep the tag equal to `version.txt`.
@@ -95,7 +97,8 @@ tests/      PdfBooklet.Tests (MSTest + NSubstitute)
 docs/       User guide and sample PDF (PdfBooklet-guide.pdf), its generator and screenshots
 scripts/    Installer build scripts
 container/  Containerfiles for the Linux package builds
-installer/  NSIS script and package output
+packaging/  Desktop entry, lintian overrides and NSIS script of the installers
+installer/  Package output (git-ignored)
 ```
 
 The architecture and conventions are described in [AGENTS.md](AGENTS.md).

@@ -1,0 +1,5 @@
+# PdfBooklet is a self-contained .NET application: the runtime and the native libraries of Avalonia (Skia, HarfBuzz)
+# are part of the package, as they are published by their vendors.
+pdfbooklet: embedded-library *
+pdfbooklet: unstripped-binary-or-object *
+pdfbooklet: no-manual-page *

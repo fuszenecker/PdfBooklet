@@ -1,182 +1,124 @@
 #!/usr/bin/env bash
+# Builds the Debian package of PdfBooklet (after the one of Promptuarium's PStudio): a self-contained build (no .NET
+# is needed on the target) in /usr/lib/pdfbooklet, the launcher, the desktop entry (PdfBooklet is offered in "Open
+# with" for PDF files), the icon, the copyright and the changelog.
+#
+# Usage: scripts/Build-Deb-Installer.sh [--version 1.0.1.0] [--runtime linux-x64|linux-arm64] [--skip-publish]
+#
+# The version defaults to version.txt; the package goes to installer/deb/. --skip-publish reuses publish/<runtime>.
 
 set -euo pipefail
-
-usage() {
-  cat <<'EOF'
-Build and package PdfBooklet as a .deb installer.
-
-Usage:
-  ./scripts/Build-Deb-Installer.sh [options]
-
-Options:
-  -v, --version <version>    Package version (defaults to root version.txt)
-  -r, --runtime <rid>        .NET runtime identifier (default: linux-x64)
-      --skip-publish         Skip dotnet publish and use existing publish output
-  -h, --help                 Show this help message
-
-Examples:
-  ./scripts/Build-Deb-Installer.sh
-  ./scripts/Build-Deb-Installer.sh --runtime linux-arm64
-  ./scripts/Build-Deb-Installer.sh --version 1.2.0.0 --skip-publish
-EOF
-}
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
-PROJECT_FILE="${REPO_ROOT}/src/PdfBooklet.csproj"
-VERSION_FILE="${REPO_ROOT}/version.txt"
+VERSION=""
 RUNTIME="linux-x64"
 SKIP_PUBLISH="false"
-VERSION=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -v|--version)
-      VERSION="$2"
-      shift 2
-      ;;
-    -r|--runtime)
-      RUNTIME="$2"
-      shift 2
-      ;;
-    --skip-publish)
-      SKIP_PUBLISH="true"
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Unknown option: $1" >&2
-      usage
-      exit 1
-      ;;
+    -v|--version) VERSION="$2"; shift 2 ;;
+    -r|--runtime) RUNTIME="$2"; shift 2 ;;
+    --skip-publish) SKIP_PUBLISH="true"; shift ;;
+    -h|--help) sed -n '2,8p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
 
 if [[ -z "${VERSION}" ]]; then
-  if [[ ! -f "${VERSION_FILE}" ]]; then
-    echo "version.txt not found at ${VERSION_FILE}. Pass --version or create version.txt." >&2
-    exit 1
-  fi
-  VERSION="$(tr -d '\r\n' < "${VERSION_FILE}")"
+  VERSION="$(tr -d '\r\n' < "${REPO_ROOT}/version.txt")"
 fi
-
-if [[ -z "${VERSION}" ]]; then
-  echo "Version is empty. Update version.txt or pass --version." >&2
-  exit 1
-fi
+[[ -n "${VERSION}" ]] || { echo "The version is empty: update version.txt or pass --version." >&2; exit 1; }
 
 case "${RUNTIME}" in
-  linux-x64) DEB_ARCH="amd64" ;;
-  linux-arm64) DEB_ARCH="arm64" ;;
-  linux-arm) DEB_ARCH="armhf" ;;
-  *)
-    echo "Unsupported runtime '${RUNTIME}'. Supported: linux-x64, linux-arm64, linux-arm." >&2
-    exit 1
-    ;;
+  linux-x64) ARCH="amd64" ;;
+  linux-arm64) ARCH="arm64" ;;
+  *) echo "Unsupported runtime: ${RUNTIME} (linux-x64 or linux-arm64)" >&2; exit 1 ;;
 esac
 
-PACKAGE_NAME="pdfbooklet"
-DISPLAY_NAME="PdfBooklet"
-MAINTAINER="PdfBooklet"
-HOMEPAGE="https://github.com/fuszenecker/PdfBooklet"
-DESCRIPTION="Turns a PDF into a print-ready 2-up booklet"
+command -v dpkg-deb >/dev/null || { echo "dpkg-deb is needed (package dpkg)." >&2; exit 1; }
 
+PACKAGE="pdfbooklet"
 PUBLISH_DIR="${REPO_ROOT}/publish/${RUNTIME}"
 OUTPUT_DIR="${REPO_ROOT}/installer/deb"
-BUILD_DIR="${OUTPUT_DIR}/build"
-PKG_DIR="${BUILD_DIR}/${PACKAGE_NAME}_${VERSION}_${DEB_ARCH}"
-DEBIAN_DIR="${PKG_DIR}/DEBIAN"
-APP_DIR="${PKG_DIR}/opt/${PACKAGE_NAME}"
-BIN_DIR="${PKG_DIR}/usr/bin"
-DESKTOP_DIR="${PKG_DIR}/usr/share/applications"
-ICON_DIR="${PKG_DIR}/usr/share/icons/hicolor/256x256/apps"
-ICON_SOURCE="${REPO_ROOT}/src/Assets/pdfbooklet-icon.png"
-OUTPUT_DEB="${OUTPUT_DIR}/${PACKAGE_NAME}_${VERSION}_${DEB_ARCH}.deb"
+WORK_DIR="${OUTPUT_DIR}/build"
+ROOT="${WORK_DIR}/${PACKAGE}_${VERSION}_${ARCH}"
+DEB="${OUTPUT_DIR}/${PACKAGE}_${VERSION}_${ARCH}.deb"
+PACKAGING="${REPO_ROOT}/packaging/linux"
 
-echo "==> Version: ${VERSION}"
-echo "==> Runtime: ${RUNTIME} (${DEB_ARCH})"
+echo "==> PdfBooklet ${VERSION}, ${RUNTIME} (${ARCH})"
 
 if [[ "${SKIP_PUBLISH}" != "true" ]]; then
-  echo "==> Publishing ${RUNTIME}"
-  dotnet publish "${PROJECT_FILE}" \
+  echo "==> Publishing"
+  rm -rf "${PUBLISH_DIR}"
+  dotnet publish "${REPO_ROOT}/src/PdfBooklet.csproj" \
     -c Release \
     -r "${RUNTIME}" \
     --self-contained true \
     -p:Version="${VERSION}" \
-    -p:AssemblyVersion="${VERSION}" \
-    -p:FileVersion="${VERSION}" \
+    -p:DebugType=none \
     -o "${PUBLISH_DIR}"
-else
-  echo "==> Skipping publish"
 fi
+[[ -d "${PUBLISH_DIR}" ]] || { echo "No publish output in ${PUBLISH_DIR}." >&2; exit 1; }
 
-if [[ ! -d "${PUBLISH_DIR}" ]]; then
-  echo "Publish directory does not exist: ${PUBLISH_DIR}" >&2
-  exit 1
-fi
+rm -rf "${WORK_DIR}"
+mkdir -p "${ROOT}/DEBIAN" \
+  "${ROOT}/usr/bin" \
+  "${ROOT}/usr/lib/${PACKAGE}" \
+  "${ROOT}/usr/share/applications" \
+  "${ROOT}/usr/share/icons/hicolor/256x256/apps" \
+  "${ROOT}/usr/share/doc/${PACKAGE}" \
+  "${ROOT}/usr/share/lintian/overrides"
 
-if ! command -v dpkg-deb >/dev/null 2>&1; then
-  echo "dpkg-deb not found. Install 'dpkg-dev' and try again." >&2
-  exit 1
-fi
+cp -a "${PUBLISH_DIR}/." "${ROOT}/usr/lib/${PACKAGE}/"
 
-echo "==> Preparing package structure"
-rm -rf "${PKG_DIR}"
-mkdir -p "${DEBIAN_DIR}" "${APP_DIR}" "${BIN_DIR}" "${DESKTOP_DIR}" "${ICON_DIR}"
+# The native libraries bring their debug symbols, which the package does not need
+find "${ROOT}/usr/lib/${PACKAGE}" -name '*.pdb' -delete
 
-cp -a "${PUBLISH_DIR}/." "${APP_DIR}/"
-cp "${REPO_ROOT}/LICENSE" "${APP_DIR}/LICENSE"
-
-cat > "${BIN_DIR}/${PACKAGE_NAME}" <<EOF
-#!/usr/bin/env bash
-exec /opt/${PACKAGE_NAME}/PdfBooklet "\$@"
-EOF
-chmod 0755 "${BIN_DIR}/${PACKAGE_NAME}"
-
-if [[ -f "${ICON_SOURCE}" ]]; then
-  cp "${ICON_SOURCE}" "${ICON_DIR}/${PACKAGE_NAME}.png"
-fi
-
-cat > "${DESKTOP_DIR}/${PACKAGE_NAME}.desktop" <<EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=${DISPLAY_NAME}
-Comment=${DESCRIPTION}
-Exec=${PACKAGE_NAME}
-Icon=${PACKAGE_NAME}
-Terminal=false
-Categories=Office;Utility;
+cat > "${ROOT}/usr/bin/${PACKAGE}" <<EOF
+#!/bin/sh
+exec /usr/lib/${PACKAGE}/PdfBooklet "\$@"
 EOF
 
-chmod 0644 "${DESKTOP_DIR}/${PACKAGE_NAME}.desktop"
+install -m 0644 "${PACKAGING}/pdfbooklet.desktop" "${ROOT}/usr/share/applications/${PACKAGE}.desktop"
+install -m 0644 "${REPO_ROOT}/src/Assets/pdfbooklet-icon.png" "${ROOT}/usr/share/icons/hicolor/256x256/apps/${PACKAGE}.png"
+install -m 0644 "${REPO_ROOT}/LICENSE" "${ROOT}/usr/share/doc/${PACKAGE}/copyright"
+install -m 0644 "${PACKAGING}/lintian-overrides" "${ROOT}/usr/share/lintian/overrides/${PACKAGE}"
 
-if [[ -f "${APP_DIR}/PdfBooklet" ]]; then
-  chmod 0755 "${APP_DIR}/PdfBooklet"
-fi
+cat > "${WORK_DIR}/changelog" <<EOF
+${PACKAGE} (${VERSION}) unstable; urgency=medium
 
-INSTALLED_SIZE="$(du -sk "${PKG_DIR}" | cut -f1)"
+  * Release ${VERSION}, see https://github.com/fuszenecker/PdfBooklet/releases
 
-cat > "${DEBIAN_DIR}/control" <<EOF
-Package: ${PACKAGE_NAME}
+ -- Fuszenecker Róbert <robert.fuszenecker@gmail.com>  $(LC_ALL=C date -R)
+EOF
+gzip -9n -c "${WORK_DIR}/changelog" > "${ROOT}/usr/share/doc/${PACKAGE}/changelog.gz"
+
+# dpkg-deb wants the usual permissions, whatever the umask of the build was
+find "${ROOT}" -type d -exec chmod 0755 {} +
+find "${ROOT}/usr" -type f -exec chmod 0644 {} +
+chmod 0755 "${ROOT}/usr/bin/${PACKAGE}" "${ROOT}/usr/lib/${PACKAGE}/PdfBooklet"
+
+cat > "${ROOT}/DEBIAN/control" <<EOF
+Package: ${PACKAGE}
 Version: ${VERSION}
-Section: utils
+Section: graphics
 Priority: optional
-Architecture: ${DEB_ARCH}
-Maintainer: ${MAINTAINER}
-Depends: libc6, libx11-6, libice6, libsm6, libxext6, libxrender1, fontconfig
-Homepage: ${HOMEPAGE}
-Installed-Size: ${INSTALLED_SIZE}
-Description: ${DESCRIPTION}
+Architecture: ${ARCH}
+Maintainer: Fuszenecker Róbert <robert.fuszenecker@gmail.com>
+Depends: libc6, libstdc++6, libgcc-s1, zlib1g, libx11-6, libice6, libsm6, libfontconfig1
+Recommends: desktop-file-utils
+Installed-Size: $(du -sk "${ROOT}/usr" | cut -f1)
+Homepage: https://github.com/fuszenecker/PdfBooklet
+Description: Turns a PDF into a print-ready 2-up booklet
+ PdfBooklet imposes the pages of a PDF two by two on landscape sheets, in the
+ order that gives a booklet when the printed stack is folded in the middle.
+ The sheet size, the margins, the binding edge, the scaling, the signatures and
+ the output order (duplex or manual duplex) are adjustable, with a live preview
+ that shows exactly what is exported.
 EOF
 
-echo "==> Building Debian package"
-dpkg-deb --build --root-owner-group "${PKG_DIR}" "${OUTPUT_DEB}"
-
-echo "==> Debian package created"
-echo "    ${OUTPUT_DEB}"
+echo "==> Building ${DEB}"
+dpkg-deb --build --root-owner-group "${ROOT}" "${DEB}"
+echo "${DEB}"

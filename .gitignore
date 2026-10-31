@@ -58,7 +58,4 @@ nunit-*.xml
 
 # Packaging output
 publish/
-installer/deb/
-installer/rpm/
-installer/dmg/
-installer/nsis/*-setup.exe
+installer/
