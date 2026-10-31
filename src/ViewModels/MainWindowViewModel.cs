@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,6 +26,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IPdfSourceReader _sourceReader;
     private readonly IBookletLayoutPlanner _planner;
     private readonly IBookletSettingsValidator _validator;
+    private readonly IPageRangeParser _pageRangeParser;
     private readonly IPdfBookletExporter _exporter;
     private readonly IConfigurationService _configurationService;
     private readonly IInfoDialogService _infoDialogService;
@@ -48,6 +50,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasValidationMessage))]
     private string validationMessage = string.Empty;
+
+    /// <summary>Which source pages go into the booklet, e.g. "1-4, 7, 10-"; blank means all of them.</summary>
+    [ObservableProperty]
+    private string pageRange = string.Empty;
 
     [ObservableProperty]
     private BookletPlan? plan;
@@ -77,6 +83,7 @@ public partial class MainWindowViewModel : ViewModelBase
         IPdfSourceReader sourceReader,
         IBookletLayoutPlanner planner,
         IBookletSettingsValidator validator,
+        IPageRangeParser pageRangeParser,
         IPdfBookletExporter exporter,
         IConfigurationService configurationService,
         IInfoDialogService infoDialogService,
@@ -87,6 +94,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _sourceReader = sourceReader;
         _planner = planner;
         _validator = validator;
+        _pageRangeParser = pageRangeParser;
         _exporter = exporter;
         _configurationService = configurationService;
         _infoDialogService = infoDialogService;
@@ -121,6 +129,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 NextSheetCommand.NotifyCanExecuteChanged();
                 OnPropertyChanged(nameof(SheetLabel));
                 break;
+            case nameof(PageRange):
+                RebuildPlan();
+                break;
             case nameof(SheetIndex):
                 PreviousSheetCommand.NotifyCanExecuteChanged();
                 NextSheetCommand.NotifyCanExecuteChanged();
@@ -149,10 +160,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void RebuildPlan()
     {
-        var error = _validator.Validate(_settings.Sheet, _settings.Layout);
+        IReadOnlyList<int>? pages = null;
+        string? pagesError = null;
+        if (_source is not null)
+        {
+            _pageRangeParser.TryParse(PageRange, _source.PageCount, out pages, out pagesError);
+        }
+
+        var error = _validator.Validate(_settings.Sheet, _settings.Layout) ?? pagesError;
         ValidationMessage = error ?? string.Empty;
 
-        if (_source is null || error is not null)
+        if (_source is null || pages is null || error is not null)
         {
             Plan = null;
             LayoutSummary = string.Empty;
@@ -160,27 +178,31 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        var plan = _planner.Plan(_source, _settings.Sheet, _settings.Layout);
+        var plan = _planner.Plan(_source, _settings.Sheet, _settings.Layout, pages);
         Plan = plan;
         SheetIndex = Math.Clamp(SheetIndex, 0, plan.Sheets.Count - 1);
-        LayoutSummary = Describe(_source, plan);
+        LayoutSummary = Describe(_source, pages, plan);
     }
 
-    private static string Describe(PdfSourceInfo source, BookletPlan plan)
+    private static string Describe(PdfSourceInfo source, IReadOnlyList<int> pages, BookletPlan plan)
     {
         var placements = plan.Sheets
             .SelectMany(sheet => new[] { sheet.Front.Left, sheet.Front.Right, sheet.Back.Left, sheet.Back.Right })
             .ToList();
         var blanks = placements.Count(p => p.SourcePageIndex is null);
-        var firstPageScale = placements.First(p => p.SourcePageIndex == 0).Scale;
+        var firstPage = pages[0];
+        var firstPageScale = placements.First(p => p.SourcePageIndex == firstPage).Scale;
 
-        var text = $"{source.PageCount} pages → {plan.Sheets.Count} sheets ({plan.SideCount} printed sides)";
+        var text = pages.Count == source.PageCount
+            ? $"{source.PageCount} pages"
+            : $"{pages.Count} of {source.PageCount} pages";
+        text += $" → {plan.Sheets.Count} sheets ({plan.SideCount} printed sides)";
         if (blanks > 0)
         {
             text += $", {blanks} blank {(blanks == 1 ? "page" : "pages")} added";
         }
 
-        return $"{text}. Scale of page 1: {firstPageScale * 100:0.#} %.";
+        return $"{text}. Scale of page {firstPage + 1}: {firstPageScale * 100:0.#} %.";
     }
 
     private async Task OpenPdfAsync()
@@ -232,7 +254,17 @@ public partial class MainWindowViewModel : ViewModelBase
         SourceSummary = $"{Path.GetFileName(path)}\n{_source.PageCount} pages, first page {ToMm(first.Width):0.#} × {ToMm(first.Height):0.#} mm";
         RememberDirectory(path, source: true);
         SheetIndex = 0;
-        RebuildPlan();
+
+        // The selection belongs to the previous document; a new one starts with all pages.
+        // Setting it to a different value rebuilds the plan through OnPropertyChanged.
+        if (PageRange.Length > 0)
+        {
+            PageRange = string.Empty;
+        }
+        else
+        {
+            RebuildPlan();
+        }
         StatusMessage = $"Loaded {Path.GetFileName(path)}";
     }
 
@@ -270,8 +302,13 @@ public partial class MainWindowViewModel : ViewModelBase
                 throw new PdfBookletException(error);
             }
 
+            if (!_pageRangeParser.TryParse(PageRange, _source.PageCount, out var pages, out var pagesError))
+            {
+                throw new PdfBookletException(pagesError);
+            }
+
             StatusMessage = $"Exporting {Path.GetFileName(destination)}…";
-            await _exporter.ExportAsync(_source, _planner.Plan(_source, sheet, layout), _settings.Output, destination);
+            await _exporter.ExportAsync(_source, _planner.Plan(_source, sheet, layout, pages), _settings.Output, destination);
 
             RememberDirectory(destination, source: false);
             StatusMessage = $"Exported {Path.GetFileName(destination)}";

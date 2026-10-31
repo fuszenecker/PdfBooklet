@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<IConfigurationService, ConfigurationService>();
             services.AddSingleton<ISheetSizeResolver, SheetSizeResolver>();
             services.AddSingleton<IBookletSettingsValidator, BookletSettingsValidator>();
+            services.AddSingleton<IPageRangeParser, PageRangeParser>();
             services.AddSingleton<IBookletLayoutPlanner, BookletLayoutPlanner>();
             services.AddSingleton<IPdfSourceReader, PdfSourceReader>();
             services.AddSingleton<IPdfBookletExporter, PdfBookletExporter>();

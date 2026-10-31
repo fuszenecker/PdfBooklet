@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using PdfBooklet.Configuration;
 using PdfBooklet.Models;
 
@@ -10,5 +11,9 @@ public interface IBookletLayoutPlanner
     /// at what scale and offset. Pure computation shared by the preview and the exporter.
     /// Settings must already have passed <see cref="IBookletSettingsValidator"/>.
     /// </summary>
-    BookletPlan Plan(PdfSourceInfo source, SheetSettings sheet, LayoutSettings layout);
+    /// <param name="pages">
+    /// Zero-based source page indices to impose, in booklet order (see <see cref="IPageRangeParser"/>);
+    /// null imposes every page of the source.
+    /// </param>
+    BookletPlan Plan(PdfSourceInfo source, SheetSettings sheet, LayoutSettings layout, IReadOnlyList<int>? pages = null);
 }

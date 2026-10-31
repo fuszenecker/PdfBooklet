@@ -9,6 +9,7 @@ Open a PDF with the first button, adjust the layout with the second (gear) and e
 ## Features
 
 - Live preview of the front and back of every sheet; blank padding pages are shown dashed
+- Page selection: make a booklet from part of the PDF only, e.g. `5-12` or `1-4, 7, 10-`
 - Sheet sizes A3, A4, A5, Letter, Legal, Tabloid or a custom size (50–2000 mm). Sheets are always landscape, two pages side by side
 - Binding on the left or the right (right-to-left books)
 - Signatures: split a long document into separately folded groups of a multiple of 4 pages, or fold it as one
@@ -35,6 +36,7 @@ The programs are self-contained; no .NET installation is needed.
 ## Using it
 
 1. **Import** a PDF. PdfBooklet reads the page sizes and shows the layout.
+   To use only part of it, type the pages into **Pages** above the preview: single pages and ranges separated by commas, in the order they should appear (`5-12`, `1-4, 7, 10-`; `10-` runs to the last page). Leave it empty for all pages. The selection is cleared when another PDF is imported.
 2. **Settings** (gear): choose paper, binding, margins, scale, alignment and output options, then press OK. Settings that cannot work (negative margins, no room left on the sheet, a signature size that is not a multiple of 4) show the reason and disable OK.
 3. **Export** the booklet PDF and print it.
 

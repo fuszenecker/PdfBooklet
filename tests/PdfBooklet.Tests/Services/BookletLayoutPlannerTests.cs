@@ -224,6 +224,40 @@ public sealed class BookletLayoutPlannerTests
     }
 
     [TestMethod]
+    public void PageSelection_ImposesOnlyTheSelectedPagesInTheirOrder()
+    {
+        var plan = CreatePlanner().Plan(Source(20), new SheetSettings(), new LayoutSettings(), [4, 5, 6, 7, 8, 9]);
+
+        // 6 selected pages -> 8 slots on 2 sheets, padded with 2 blanks at the end.
+        Assert.HasCount(2, plan.Sheets);
+        var order = Order(plan);
+        CollectionAssert.AreEqual(new int?[] { null, 4 }, order[0]);
+        CollectionAssert.AreEqual(new int?[] { 5, null }, order[1]);
+        CollectionAssert.AreEqual(new int?[] { 9, 6 }, order[2]);
+        CollectionAssert.AreEqual(new int?[] { 7, 8 }, order[3]);
+    }
+
+    [TestMethod]
+    public void PageSelection_SizesBlanksLikeTheFirstSelectedPage()
+    {
+        var a4 = new PageSize(595.28, 841.89);
+        var source = new PdfSourceInfo("mixed.pdf", [A5, a4, a4, a4]);
+
+        var plan = CreatePlanner().Plan(source, new SheetSettings(), new LayoutSettings(), [1, 2, 3]);
+
+        var blank = plan.Sheets[0].Front.Left;
+        Assert.IsNull(blank.SourcePageIndex);
+        Assert.AreEqual(plan.Sheets[0].Front.Right.Content.Width, blank.Content.Width, 1e-9);
+    }
+
+    [TestMethod]
+    public void PageSelection_OutsideTheSource_Throws()
+    {
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+            () => CreatePlanner().Plan(Source(4), new SheetSettings(), new LayoutSettings(), [0, 4]));
+    }
+
+    [TestMethod]
     public void EmptyDocument_ProducesNoSheets()
     {
         var plan = CreatePlanner().Plan(new PdfSourceInfo("empty.pdf", []), new SheetSettings(), new LayoutSettings());

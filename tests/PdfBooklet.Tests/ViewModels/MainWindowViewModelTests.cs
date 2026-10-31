@@ -41,6 +41,7 @@ public sealed class MainWindowViewModelTests
             _reader,
             new BookletLayoutPlanner(resolver),
             new BookletSettingsValidator(resolver),
+            new PageRangeParser(),
             _exporter,
             _configuration,
             _info,
@@ -82,6 +83,68 @@ public sealed class MainWindowViewModelTests
         Assert.Contains("novel.pdf", viewModel.SourceSummary);
         Assert.Contains("2 blank pages", viewModel.LayoutSummary);
         Assert.AreEqual("Sheet 1 / 2", viewModel.SheetLabel);
+    }
+
+    [TestMethod]
+    public async Task PageRange_ReplansWithTheSelectedPages()
+    {
+        var viewModel = await LoadedAsync(pages: 20);
+
+        viewModel.PageRange = "5-12";
+
+        Assert.HasCount(2, viewModel.Plan!.Sheets);
+        Assert.AreEqual(4, viewModel.Plan.Sheets[0].Front.Right.SourcePageIndex);
+        Assert.Contains("8 of 20 pages", viewModel.LayoutSummary);
+        Assert.Contains("Scale of page 5", viewModel.LayoutSummary);
+        Assert.IsFalse(viewModel.HasValidationMessage);
+    }
+
+    [TestMethod]
+    public async Task PageRange_Invalid_ShowsMessageAndBlocksExport()
+    {
+        var viewModel = await LoadedAsync(pages: 6);
+
+        viewModel.PageRange = "3-9";
+
+        Assert.IsNull(viewModel.Plan);
+        Assert.Contains("Page 9 does not exist", viewModel.ValidationMessage);
+        Assert.IsFalse(viewModel.ExportCommand.CanExecute(null));
+
+        viewModel.PageRange = "3-6";
+
+        Assert.IsNotNull(viewModel.Plan);
+        Assert.IsFalse(viewModel.HasValidationMessage);
+    }
+
+    [TestMethod]
+    public async Task PageRange_IsClearedWhenAnotherPdfIsLoaded()
+    {
+        var viewModel = await LoadedAsync(pages: 20);
+        viewModel.PageRange = "15-20";
+        _reader.ReadAsync("/books/short.pdf", Arg.Any<CancellationToken>()).Returns(Source("/books/short.pdf", 4));
+
+        await viewModel.LoadSourceAsync("/books/short.pdf");
+
+        Assert.AreEqual(string.Empty, viewModel.PageRange);
+        Assert.IsFalse(viewModel.HasValidationMessage);
+        Assert.HasCount(1, viewModel.Plan!.Sheets);
+    }
+
+    [TestMethod]
+    public async Task Export_UsesThePageSelection()
+    {
+        var viewModel = await LoadedAsync(pages: 20);
+        viewModel.PageRange = "1-4";
+        _files.PickDestinationAsync(Arg.Any<string>(), Arg.Any<string?>()).Returns("/out/part.pdf");
+
+        await viewModel.ExportCommand.ExecuteAsync(null);
+
+        await _exporter.Received(1).ExportAsync(
+            Arg.Any<PdfSourceInfo>(),
+            Arg.Is<BookletPlan>(p => p.Sheets.Count == 1 && p.Sheets[0].Front.Left.SourcePageIndex == 3),
+            Arg.Any<OutputSettings>(),
+            "/out/part.pdf",
+            Arg.Any<CancellationToken>());
     }
 
     [TestMethod]
@@ -254,6 +317,7 @@ public sealed class MainWindowViewModelTests
             _files, _settingsDialog, _reader,
             new BookletLayoutPlanner(new SheetSizeResolver()),
             new BookletSettingsValidator(new SheetSizeResolver()),
+            new PageRangeParser(),
             _exporter, _configuration, _info, NullLogger<MainWindowViewModel>.Instance);
 
         Assert.IsTrue(second.HasValidationMessage);

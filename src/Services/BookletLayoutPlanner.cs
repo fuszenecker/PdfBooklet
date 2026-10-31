@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using PdfBooklet.Configuration;
 using PdfBooklet.Interfaces;
 using PdfBooklet.Models;
@@ -15,19 +16,28 @@ public sealed class BookletLayoutPlanner : IBookletLayoutPlanner
         _sheetSizeResolver = sheetSizeResolver;
     }
 
-    public BookletPlan Plan(PdfSourceInfo source, SheetSettings sheet, LayoutSettings layout)
+    public BookletPlan Plan(PdfSourceInfo source, SheetSettings sheet, LayoutSettings layout, IReadOnlyList<int>? pages = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(sheet);
         ArgumentNullException.ThrowIfNull(layout);
 
+        pages ??= [.. Enumerable.Range(0, source.PageCount)];
+        foreach (var index in pages)
+        {
+            if (index < 0 || index >= source.PageCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pages), index, $"The source has only {source.PageCount} pages.");
+            }
+        }
+
         var sheetSize = _sheetSizeResolver.Resolve(sheet);
-        var geometry = new Geometry(sheetSize, layout, source.Pages.Count > 0 ? source.Pages[0] : default);
+        var geometry = new Geometry(sheetSize, layout, pages.Count > 0 ? source.Pages[pages[0]] : default);
 
         var sheets = new List<BookletSheet>();
-        foreach (var signature in SplitIntoSignatures(source.PageCount, layout.PagesPerSignature))
+        foreach (var signature in SplitIntoSignatures(pages.Count, layout.PagesPerSignature))
         {
-            AppendSignature(sheets, signature.Offset, signature.RealPages, signature.Slots, layout.Binding, source, geometry);
+            AppendSignature(sheets, signature.Offset, signature.RealPages, signature.Slots, layout.Binding, source, pages, geometry);
         }
 
         return new BookletPlan(sheetSize, sheets);
@@ -56,11 +66,12 @@ public sealed class BookletLayoutPlanner : IBookletLayoutPlanner
         int slots,
         BindingEdge binding,
         PdfSourceInfo source,
+        IReadOnlyList<int> pages,
         Geometry geometry)
     {
         PlacedPage Place(int slot, bool isLeft)
         {
-            int? sourceIndex = slot < realPages ? offset + slot : null;
+            int? sourceIndex = slot < realPages ? pages[offset + slot] : null;
             return geometry.Place(sourceIndex, sourceIndex is { } index ? source.Pages[index] : null, isLeft);
         }
 
