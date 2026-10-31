@@ -2,6 +2,10 @@
 
 The notes of every release, the newest first. A section belongs to a version without its BUILD number (`## 1.1.0`): the releases of the same code (1.1.0.0, 1.1.0.1, …) share it. The release workflow puts the section of the tag into the GitHub release, with the downloads, and refuses a tag that has no section; CI fails when the version in `version.txt` has none. A paragraph or an item is one line: GitHub shows every line break of a release.
 
+## 1.1.1
+
+- The settings files explain themselves: every section and every setting of `settings.prmt` carries a comment with its meaning, its unit and its allowed values or range (e.g. "The width of a Custom sheet, in mm (50 to 2000)"). Promptuarium's `pedit` and PStudio show the comments; the per-user file gets them the next time the settings are saved. The settings themselves are unchanged and kept.
+
 ## 1.1.0
 
 The settings are stored in a Promptuarium container instead of a JSON file, and the installers are reworked.
