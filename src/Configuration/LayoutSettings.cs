@@ -38,7 +38,14 @@ public sealed class LayoutSettings
     /// Source pages per nested signature, a multiple of 4. Zero folds the whole document
     /// as a single signature.
     /// </summary>
+    /// <remarks>
+    /// Stored as <c>FLOAT64</c>, the number type of version 1 of the container layout: an <c>int</c> would be
+    /// written as <c>INT32</c> (version 2, <c>PRMT:CFG2-LE</c>), which PdfBooklet 1.2 and earlier cannot read.
+    /// </remarks>
     [PromptuariumComment("Source pages per separately folded signature, a multiple of 4; 0 folds the whole document as one signature")]
+#pragma warning disable PRMTSER001 // [PromptuariumType] is experimental
+    [PromptuariumType(PromptuariumType.Float64)]
+#pragma warning restore PRMTSER001
     public int PagesPerSignature { get; set; }
 
     public LayoutSettings Clone() => new()

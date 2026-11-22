@@ -39,6 +39,11 @@ tests/
   (`$XDG_CONFIG_HOME/PdfBooklet` or `~/.config/PdfBooklet` on Linux, `%LocalAppData%\PdfBooklet` on Windows,
   `~/Library/Application Support/PdfBooklet` on macOS; see `ConfigurationPaths`) is applied onto it with `Populate`.
   There is no `appsettings.json` and no migration from the old JSON files. `IConfigurationService` is the only writer.
+- The containers stay **version 1** (`PRMT:CFG1-LE`) so PdfBooklet 1.2 and earlier can still read them. Since
+  Promptuarium.Serializer 8.4 an integer, `decimal`, date, time or `Guid` property is written as a version-2 type
+  (`PRMT:CFG2-LE`), so such a property needs `[PromptuariumType(Float64)]` (numbers) or `[PromptuariumType(Utf8String)]`
+  (dates, times, `Guid`), with a local `#pragma warning disable PRMTSER001`. Tests check that saved files are `CFG1-LE`
+  and that `tests/PdfBooklet.Tests/Stores/TestData/settings-1.2.0.prmt` (written by 1.2.0) still loads.
 - Every settings class and property carries a `[PromptuariumComment]` (unit, allowed values or range, meaning), written
   into the containers as COMMENT nodes for people reading them with `pedit`/PStudio; readers ignore them. A new or
   changed setting gets its comment too.

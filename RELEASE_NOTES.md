@@ -2,6 +2,10 @@
 
 The notes of every release, the newest first. A section belongs to a version without its BUILD number (`## 1.1.0`): the releases of the same code (1.1.0.0, 1.1.0.1, …) share it. The release workflow puts the section of the tag into the GitHub release, with the downloads, and refuses a tag that has no section; CI fails when the version in `version.txt` has none. A paragraph or an item is one line: GitHub shows every line break of a release.
 
+## 1.2.1
+
+- Maintenance release: PdfBooklet uses Promptuarium.Serializer 8.4.0 to read and write its settings. Nothing changes for you: the settings are kept, and `settings.prmt` stays a `PRMT:CFG1-LE` container, so earlier versions of PdfBooklet (and of `pedit` and PStudio) can still read the files this version saves.
+
 ## 1.2.0
 
 - **Make a booklet from part of the PDF.** Type the pages into the new *Pages* field above the preview: single pages and ranges separated by commas, in the order they should appear in the booklet, e.g. `5-12` or `1-4, 7, 10-` (`10-` runs to the last page). Leave it empty for all pages, as before. The preview follows while you type, the summary shows how many of the pages are used, and a selection that cannot work (a page the PDF does not have, a range that ends before it starts) shows the reason and disables Export. The selection is cleared when another PDF is imported; it is not stored with the settings.

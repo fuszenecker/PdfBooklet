@@ -121,4 +121,48 @@ public sealed class ConfigurationStoreTests
 
         Assert.IsGreaterThanOrEqualTo(1, store.Load().Layout.MarginTopMm);
     }
+
+    [TestMethod]
+    public async Task Save_WritesVersion1Containers()
+    {
+        // PdfBooklet 1.2 and earlier (Promptuarium.Serializer 8.3 and earlier) read only PRMT:CFG1-LE:
+        // every setting must keep a type of version 1, even with non-default values.
+        var config = new AppConfiguration();
+        config.Layout.PagesPerSignature = 16;
+        config.Layout.MarginTopMm = 12.25;
+        await CreateStore(_userConfig).SaveAsync(config);
+
+        foreach (var bytes in new[]
+                 {
+                     File.ReadAllBytes(_userConfig),
+                     File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, ConfigurationPaths.SettingsFileName)),
+                 })
+        {
+            CollectionAssert.AreEqual("PRMT:CFG1-LE"u8.ToArray(), bytes[1..13]);
+        }
+    }
+
+    [TestMethod]
+    public void Load_ReadsAUserFileWrittenByVersion120()
+    {
+        // Written by PdfBooklet 1.2.0 (Promptuarium.Serializer 8.1.0, PRMT:CFG1-LE).
+        Directory.CreateDirectory(Path.GetDirectoryName(_userConfig)!);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Stores", "TestData", "settings-1.2.0.prmt"), _userConfig);
+
+        var config = CreateStore(_userConfig).Load();
+
+        Assert.AreEqual(PaperSize.Custom, config.Sheet.PaperSize);
+        Assert.AreEqual(420.5, config.Sheet.CustomWidthMm);
+        Assert.AreEqual(210, config.Sheet.CustomHeightMm);
+        Assert.AreEqual(BindingEdge.Right, config.Layout.Binding);
+        Assert.AreEqual(12.25, config.Layout.MarginTopMm);
+        Assert.AreEqual(16, config.Layout.PagesPerSignature);
+        Assert.AreEqual(ScaleMode.Custom, config.Layout.ScaleMode);
+        Assert.AreEqual(95, config.Layout.CustomScalePercent);
+        Assert.AreEqual(PdfVersion.Pdf15, config.Output.PdfVersion);
+        Assert.IsTrue(config.Output.CompressStreams);
+        Assert.IsTrue(config.Output.ManualDuplex);
+        Assert.AreEqual("/books", config.UiPreferences.LastSourceDirectory);
+        Assert.IsNull(config.UiPreferences.LastExportDirectory);
+    }
 }
