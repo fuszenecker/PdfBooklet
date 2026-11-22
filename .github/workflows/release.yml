@@ -119,11 +119,12 @@ jobs:
     runs-on: ubuntu-latest
     # The job runs inside Rocky Linux 9 (the runner starts the container), so rpmbuild is the EL one and the
     # package gets the .el9 tag. Built on 9, the package also installs on 10 and on Fedora.
-    container: quay.io/rockylinux/rockylinux:9
-    # The Rocky 9 image sets no PATH of its own, so once setup-dotnet adds to it, the steps would run with the .NET
-    # directory alone and not find sh. The runner prepends the added directories to this one.
-    env:
-      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    # The Rocky 9 image sets no PATH of its own. Once setup-dotnet adds to the PATH, the runner prepends it to the
+    # PATH of the container (not of the job env), so without this the steps would run with the .NET directory alone
+    # and not find sh.
+    container:
+      image: quay.io/rockylinux/rockylinux:9
+      options: --env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     steps:
       # rpmbuild; git for checkout; libicu for the .NET SDK
       - name: Install the build tools
