@@ -17,6 +17,7 @@ Open a PDF with the first button, adjust the layout with the second (gear) and e
 - Scale: fit to the area, actual size or a custom percentage; horizontal (inner, center, outer) and vertical (top, middle, bottom) alignment
 - Output PDF version 1.4–1.7 and stream compression
 - **Manual duplex** for single-sided printers: all fronts first, then all backs in reverse order
+- Opens the exported booklet in a PDF viewer to print it: the system default, a viewer found on the computer, or any program you choose
 - Settings are remembered between runs; the original file is never modified and never overwritten
 - Optional file argument: `pdfbooklet file.pdf` opens it at startup
 
@@ -37,8 +38,10 @@ The programs are self-contained; no .NET installation is needed.
 
 1. **Import** a PDF. PdfBooklet reads the page sizes and shows the layout.
    To use only part of it, type the pages into **Pages** above the preview: single pages and ranges separated by commas, in the order they should appear (`5-12`, `1-4, 7, 10-`; `10-` runs to the last page). Leave it empty for all pages. The selection is cleared when another PDF is imported.
-2. **Settings** (gear): choose paper, binding, margins, scale, alignment and output options, then press OK. Settings that cannot work (negative margins, no room left on the sheet, a signature size that is not a multiple of 4) show the reason and disable OK.
-3. **Export** the booklet PDF and print it.
+2. **Settings** (gear): choose paper, binding, margins, scale, alignment, output options and the PDF viewer, then press OK. Settings that cannot work (negative margins, no room left on the sheet, a signature size that is not a multiple of 4) show the reason and disable OK.
+3. **Export** the booklet PDF. It opens in a PDF viewer, where you print it. *After export* in the settings chooses the viewer: *System default*, one of the viewers found on the computer, or *Custom…* to pick the program (on macOS the `.app`); untick *Open the booklet in a PDF viewer* to just save the file.
+
+The version is in the window title; the ⓘ button shows it in full with the license and links.
 
 ![Settings dialog](docs/images/settings-dialog.png)
 

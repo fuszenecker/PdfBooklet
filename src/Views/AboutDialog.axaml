@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PdfBooklet.ViewModels"
+        x:Class="PdfBooklet.Views.AboutDialog"
+        x:DataType="vm:AboutDialogViewModel"
+        Title="About PdfBooklet"
+        Width="460" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+
+    <StackPanel Margin="20,20,20,12" Spacing="14">
+        <StackPanel Orientation="Horizontal" Spacing="16">
+            <Image Source="/Assets/pdfbooklet-icon.png" Width="64" Height="64"/>
+            <StackPanel VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold"/>
+                <SelectableTextBlock Text="{Binding VersionText}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <TextBlock Text="Turns a PDF into a print-ready 2-up booklet: open a PDF, adjust the layout, export, print."
+                   TextWrapping="Wrap"/>
+
+        <StackPanel Spacing="2">
+            <TextBlock Text="{Binding Copyright}" TextWrapping="Wrap"/>
+            <TextBlock TextWrapping="Wrap"
+                       Text="Free software under the GNU Affero General Public License v3.0. Uses PDFsharp under its AGPL terms and Avalonia under the MIT license."/>
+        </StackPanel>
+
+        <StackPanel Spacing="0">
+            <HyperlinkButton Padding="0,2" Content="Project page" NavigateUri="{Binding ProjectUri}"/>
+            <HyperlinkButton Padding="0,2" Content="Releases and release notes" NavigateUri="{Binding ReleasesUri}"/>
+            <HyperlinkButton Padding="0,2" Content="GNU AGPL v3.0" NavigateUri="{Binding LicenseUri}"/>
+        </StackPanel>
+
+        <SelectableTextBlock Text="{Binding Runtime}" FontSize="12" Opacity="0.7"/>
+
+        <Button Content="OK" Command="{Binding OkCommand}" MinWidth="90" IsDefault="True" IsCancel="True"
+                HorizontalAlignment="Right" HorizontalContentAlignment="Center"/>
+    </StackPanel>
+</Window>

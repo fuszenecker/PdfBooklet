@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         {
             services.AddSingleton<IWindowContext, WindowContext>();
             services.AddSingleton<IAppPaths, AppPaths>();
+            services.AddSingleton<IApplicationInfo, ApplicationInfo>();
         }
 
         /// <summary>Persistence surfaces accessed through the service layer.</summary>
@@ -39,9 +40,12 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<IBookletLayoutPlanner, BookletLayoutPlanner>();
             services.AddSingleton<IPdfSourceReader, PdfSourceReader>();
             services.AddSingleton<IPdfBookletExporter, PdfBookletExporter>();
+            services.AddSingleton<IPdfViewerCatalog, PdfViewerCatalog>();
+            services.AddSingleton<IPdfViewerLauncher, PdfViewerLauncher>();
             services.AddSingleton<IPdfFileDialogService, PdfFileDialogService>();
             services.AddSingleton<IInfoDialogService, InfoDialogService>();
             services.AddSingleton<ISettingsDialogService, SettingsDialogService>();
+            services.AddSingleton<IAboutDialogService, AboutDialogService>();
         }
 
         /// <summary>The factory that constructs dialog view models and the application's root view model.</summary>

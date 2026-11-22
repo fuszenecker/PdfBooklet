@@ -15,6 +15,11 @@ public sealed class PdfFileDialogService : IPdfFileDialogService
         MimeTypes = ["application/pdf"],
     };
 
+    private static readonly FilePickerFileType WindowsProgramFileType = new("Program")
+    {
+        Patterns = ["*.exe"],
+    };
+
     private readonly IWindowContext _windowContext;
 
     public PdfFileDialogService(IWindowContext windowContext)
@@ -60,6 +65,26 @@ public sealed class PdfFileDialogService : IPdfFileDialogService
         });
 
         return ToLocalPath(file);
+    }
+
+    public async Task<string?> PickApplicationAsync(string? startDirectory)
+    {
+        // Opened from the settings dialog, so it belongs to that window.
+        var owner = _windowContext.ActiveWindow;
+        if (owner is null)
+        {
+            return null;
+        }
+
+        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose the PDF viewer",
+            AllowMultiple = false,
+            FileTypeFilter = OperatingSystem.IsWindows() ? [WindowsProgramFileType, FilePickerFileTypes.All] : null,
+            SuggestedStartLocation = await ResolveFolderAsync(owner.StorageProvider, startDirectory),
+        });
+
+        return ToLocalPath(files.FirstOrDefault());
     }
 
     private static async Task<IStorageFolder?> ResolveFolderAsync(IStorageProvider provider, string? directory)

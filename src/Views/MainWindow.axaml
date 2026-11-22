@@ -10,7 +10,7 @@
         Width="820" Height="680"
         MinWidth="560" MinHeight="480"
         Icon="/Assets/pdfbooklet-icon.ico"
-        Title="PdfBooklet">
+        Title="{Binding WindowTitle}">
 
     <DockPanel IsEnabled="{Binding CanInteract}">
 
@@ -18,7 +18,16 @@
             <TextBlock Text="{Binding StatusMessage}"/>
         </Border>
 
-        <DockPanel DockPanel.Dock="Top" Margin="12,20,16,16">
+        <DockPanel DockPanel.Dock="Top" Margin="12,20,12,16">
+            <Button DockPanel.Dock="Right" Classes="tool" VerticalAlignment="Center" Margin="18,0,0,0"
+                    Command="{Binding ShowAboutCommand}" ToolTip.Tip="About PdfBooklet" AutomationProperties.Name="About PdfBooklet">
+                <Viewbox Width="32" Height="32">
+                    <Canvas Width="24" Height="24">
+                        <Path Data="{StaticResource AboutIconCircle}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8"/>
+                        <Path Data="{StaticResource AboutIconLetter}" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="2" StrokeLineCap="Round"/>
+                    </Canvas>
+                </Viewbox>
+            </Button>
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                 <Button Classes="tool" Command="{Binding OpenPdfCommand}" ToolTip.Tip="Import PDF" AutomationProperties.Name="Import PDF">
                     <Viewbox Width="32" Height="32">

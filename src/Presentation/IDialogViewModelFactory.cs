@@ -8,4 +8,6 @@ public interface IDialogViewModelFactory
     InfoDialogViewModel CreateInfo(string title, string primaryMessage, string detailMessage);
 
     SettingsDialogViewModel CreateSettings(BookletSettings current);
+
+    AboutDialogViewModel CreateAbout();
 }

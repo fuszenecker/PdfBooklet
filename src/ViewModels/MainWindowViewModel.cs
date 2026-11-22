@@ -30,6 +30,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IPdfBookletExporter _exporter;
     private readonly IConfigurationService _configurationService;
     private readonly IInfoDialogService _infoDialogService;
+    private readonly IPdfViewerLauncher _viewerLauncher;
+    private readonly IAboutDialogService _aboutDialogService;
     private readonly ILogger<MainWindowViewModel> _logger;
 
     private PdfSourceInfo? _source;
@@ -38,6 +40,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public IAsyncRelayCommand OpenPdfCommand { get; }
     public IAsyncRelayCommand OpenSettingsCommand { get; }
     public IAsyncRelayCommand ExportCommand { get; }
+    public IAsyncRelayCommand ShowAboutCommand { get; }
     public IRelayCommand PreviousSheetCommand { get; }
     public IRelayCommand NextSheetCommand { get; }
 
@@ -69,6 +72,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(CanInteract))]
     private bool isBusy;
 
+    /// <summary>"PdfBooklet 1.3.0": the version is always in sight.</summary>
+    public string WindowTitle { get; }
+
     public bool HasSource => _source is not null;
     public bool HasValidationMessage => !string.IsNullOrEmpty(ValidationMessage);
     public bool CanInteract => !IsBusy;
@@ -87,6 +93,9 @@ public partial class MainWindowViewModel : ViewModelBase
         IPdfBookletExporter exporter,
         IConfigurationService configurationService,
         IInfoDialogService infoDialogService,
+        IPdfViewerLauncher viewerLauncher,
+        IAboutDialogService aboutDialogService,
+        IApplicationInfo applicationInfo,
         ILogger<MainWindowViewModel> logger)
     {
         _fileDialogService = fileDialogService;
@@ -98,11 +107,15 @@ public partial class MainWindowViewModel : ViewModelBase
         _exporter = exporter;
         _configurationService = configurationService;
         _infoDialogService = infoDialogService;
+        _viewerLauncher = viewerLauncher;
+        _aboutDialogService = aboutDialogService;
+        WindowTitle = $"{applicationInfo.Name} {applicationInfo.ShortVersion}";
         _logger = logger;
 
         OpenPdfCommand = new AsyncRelayCommand(OpenPdfAsync, () => CanInteract);
         OpenSettingsCommand = new AsyncRelayCommand(OpenSettingsAsync, () => CanInteract);
         ExportCommand = new AsyncRelayCommand(ExportAsync, CanExport);
+        ShowAboutCommand = new AsyncRelayCommand(_aboutDialogService.ShowAsync);
         PreviousSheetCommand = new RelayCommand(() => SheetIndex--, () => SheetIndex > 0);
         NextSheetCommand = new RelayCommand(() => SheetIndex++, () => Plan is { } p && SheetIndex < p.Sheets.Count - 1);
 
@@ -312,7 +325,25 @@ public partial class MainWindowViewModel : ViewModelBase
 
             RememberDirectory(destination, source: false);
             StatusMessage = $"Exported {Path.GetFileName(destination)}";
-            await _infoDialogService.ShowInfoAsync("Export complete", $"The booklet was saved.\n{destination}");
+
+            if (!_settings.Output.OpenAfterExport)
+            {
+                await _infoDialogService.ShowInfoAsync("Export complete", $"The booklet was saved.\n{destination}");
+                return;
+            }
+
+            // The viewer replaces the "export complete" dialog: it shows the booklet, ready to print.
+            try
+            {
+                _viewerLauncher.Open(destination, _settings.Output.Viewer);
+                StatusMessage = $"Exported {Path.GetFileName(destination)} and opened it in the PDF viewer";
+            }
+            catch (PdfBookletException ex)
+            {
+                _logger.LogWarning(ex, "Opening the exported booklet failed");
+                await _infoDialogService.ShowInfoAsync(
+                    "Export complete", $"The booklet was saved, but it could not be opened.\n{destination}\n{ex.Message}");
+            }
         }
         catch (PdfBookletException ex)
         {

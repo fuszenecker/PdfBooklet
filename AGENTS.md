@@ -74,7 +74,9 @@ dotnet run --project src/PdfBooklet.csproj -- path/to/file.pdf   # optional file
 ## Packaging and releases
 
 Installer scripts live in `scripts/` (deb, rpm and NSIS modelled on Promptuarium's PStudio packaging) and read the
-version from `version.txt` unless `--version` is given; `.csproj` carries no version. The files they package are in
+version from `version.txt` unless `--version` is given. `src/PdfBooklet.csproj` reads `version.txt` too (`Version`,
+`AssemblyVersion`, `FileVersion`, unless set with `-p:`), so every build carries it; the app shows it in the window
+title (without the BUILD number) and in the About dialog (`IApplicationInfo`). The files they package are in
 `packaging/` (`linux/pdfbooklet.desktop`, `linux/lintian-overrides`, `windows/PdfBooklet.nsi`). Outputs go to
 `installer/` (git-ignored). The Linux packages put the self-contained build in `/usr/lib/pdfbooklet` (no `.pdb`)
 with a `/usr/bin/pdfbooklet` launcher; the desktop entry lists `application/pdf` so PdfBooklet shows up in "Open with".
@@ -124,4 +126,4 @@ The application icon is `src/Assets/pdfbooklet-icon.png` / `.ico`; the installer
   `App.axaml.cs`. Never use `new` for services outside the composition root and tests.
 - Nullable reference types are enabled; no `null!` suppressions without justification.
 - Target framework `net10.0`; compiled Avalonia bindings are on by default — keep bindings compile-time safe.
-- Package versions live in `Directory.Packages.props`; the version number lives in `version.txt`.
+- Package versions live in `Directory.Packages.props`; the version number lives in `version.txt` (never in `.csproj`).

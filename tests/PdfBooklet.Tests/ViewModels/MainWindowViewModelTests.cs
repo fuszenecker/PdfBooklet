@@ -21,7 +21,10 @@ public sealed class MainWindowViewModelTests
     private IPdfBookletExporter _exporter = null!;
     private IConfigurationService _configuration = null!;
     private IInfoDialogService _info = null!;
-    private AppConfiguration _config = null!;
+    private IPdfViewerLauncher _viewer = null!;
+    private IAboutDialogService _about = null!;
+    private IApplicationInfo _appInfo = null!;
+    private readonly AppConfiguration _config = new();
 
     private MainWindowViewModel CreateViewModel()
     {
@@ -30,8 +33,12 @@ public sealed class MainWindowViewModelTests
         _reader = Substitute.For<IPdfSourceReader>();
         _exporter = Substitute.For<IPdfBookletExporter>();
         _info = Substitute.For<IInfoDialogService>();
+        _viewer = Substitute.For<IPdfViewerLauncher>();
+        _about = Substitute.For<IAboutDialogService>();
+        _appInfo = Substitute.For<IApplicationInfo>();
+        _appInfo.Name.Returns("PdfBooklet");
+        _appInfo.ShortVersion.Returns("1.3.0");
         _configuration = Substitute.For<IConfigurationService>();
-        _config = new AppConfiguration();
         _configuration.Current.Returns(_ => _config);
 
         var resolver = new SheetSizeResolver();
@@ -45,6 +52,9 @@ public sealed class MainWindowViewModelTests
             _exporter,
             _configuration,
             _info,
+            _viewer,
+            _about,
+            _appInfo,
             NullLogger<MainWindowViewModel>.Instance);
     }
 
@@ -69,6 +79,22 @@ public sealed class MainWindowViewModelTests
         Assert.IsFalse(viewModel.ExportCommand.CanExecute(null));
         Assert.IsTrue(viewModel.OpenPdfCommand.CanExecute(null));
         Assert.IsTrue(viewModel.OpenSettingsCommand.CanExecute(null));
+    }
+
+    [TestMethod]
+    public void WindowTitle_ShowsTheVersion()
+    {
+        Assert.AreEqual("PdfBooklet 1.3.0", CreateViewModel().WindowTitle);
+    }
+
+    [TestMethod]
+    public async Task ShowAbout_OpensTheAboutDialog()
+    {
+        var viewModel = CreateViewModel();
+
+        await viewModel.ShowAboutCommand.ExecuteAsync(null);
+
+        await _about.Received(1).ShowAsync();
     }
 
     [TestMethod]
@@ -237,8 +263,38 @@ public sealed class MainWindowViewModelTests
     }
 
     [TestMethod]
+    public async Task Export_OpensTheBookletInTheConfiguredViewer()
+    {
+        _config.Output.Viewer = "/usr/bin/okular";
+        var viewModel = await LoadedAsync(pages: 8);
+        _files.PickDestinationAsync(Arg.Any<string>(), Arg.Any<string?>()).Returns("/out/result.pdf");
+
+        await viewModel.ExportCommand.ExecuteAsync(null);
+
+        _viewer.Received(1).Open("/out/result.pdf", "/usr/bin/okular");
+        await _info.DidNotReceiveWithAnyArgs().ShowInfoAsync(default!, default!);
+        Assert.Contains("opened", viewModel.StatusMessage);
+    }
+
+    [TestMethod]
+    public async Task Export_ViewerFailure_ReportsThatTheBookletWasSaved()
+    {
+        var viewModel = await LoadedAsync(pages: 8);
+        _files.PickDestinationAsync(Arg.Any<string>(), Arg.Any<string?>()).Returns("/out/result.pdf");
+        _viewer.When(v => v.Open(Arg.Any<string>(), Arg.Any<string?>()))
+            .Do(_ => throw new PdfBookletException("Could not start xdg-open: not found"));
+
+        await viewModel.ExportCommand.ExecuteAsync(null);
+
+        await _info.Received(1).ShowInfoAsync("Export complete", Arg.Is<string>(m =>
+            m.Contains("saved, but it could not be opened") && m.Contains("/out/result.pdf") && m.Contains("xdg-open")));
+        Assert.IsFalse(viewModel.IsBusy);
+    }
+
+    [TestMethod]
     public async Task Export_WritesPlannedBookletToChosenFile()
     {
+        _config.Output.OpenAfterExport = false;
         var viewModel = await LoadedAsync(pages: 8);
         _files.PickDestinationAsync("novel-booklet.pdf", Arg.Any<string?>()).Returns("/out/result.pdf");
 
@@ -251,6 +307,7 @@ public sealed class MainWindowViewModelTests
             "/out/result.pdf",
             Arg.Any<CancellationToken>());
         await _info.Received(1).ShowInfoAsync("Export complete", Arg.Is<string>(m => m.Contains("/out/result.pdf")));
+        _viewer.DidNotReceiveWithAnyArgs().Open(default!, default);
         _configuration.Received().Apply(Arg.Is<AppConfiguration>(c => c.UiPreferences.LastExportDirectory == "/out"));
     }
 
@@ -318,7 +375,7 @@ public sealed class MainWindowViewModelTests
             new BookletLayoutPlanner(new SheetSizeResolver()),
             new BookletSettingsValidator(new SheetSizeResolver()),
             new PageRangeParser(),
-            _exporter, _configuration, _info, NullLogger<MainWindowViewModel>.Instance);
+            _exporter, _configuration, _info, _viewer, _about, _appInfo, NullLogger<MainWindowViewModel>.Instance);
 
         Assert.IsTrue(second.HasValidationMessage);
         Assert.IsNull(second.Plan);

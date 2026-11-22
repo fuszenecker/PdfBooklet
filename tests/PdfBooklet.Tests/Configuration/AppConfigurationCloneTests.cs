@@ -54,7 +54,10 @@ public sealed class AppConfigurationCloneTests
     [TestMethod]
     public void Clone_CopiesEveryOutputProperty()
     {
-        var output = new OutputSettings { PdfVersion = PdfVersion.Pdf14, CompressStreams = false, ManualDuplex = true };
+        var output = new OutputSettings
+        {
+            PdfVersion = PdfVersion.Pdf14, CompressStreams = false, ManualDuplex = true, OpenAfterExport = false, Viewer = "/usr/bin/okular",
+        };
 
         var clone = output.Clone();
 

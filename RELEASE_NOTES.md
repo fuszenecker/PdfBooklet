@@ -2,6 +2,13 @@
 
 The notes of every release, the newest first. A section belongs to a version without its BUILD number (`## 1.1.0`): the releases of the same code (1.1.0.0, 1.1.0.1, …) share it. The release workflow puts the section of the tag into the GitHub release, with the downloads, and refuses a tag that has no section; CI fails when the version in `version.txt` has none. A paragraph or an item is one line: GitHub shows every line break of a release.
 
+## 1.3.0
+
+- **Print straight from the export.** After exporting, PdfBooklet opens the booklet in a PDF viewer, where you print it (double-sided, flip on short edge, 100 %). The "Export complete" message is no longer shown then; the status bar confirms the export, and if the viewer cannot be started, a message says so and shows where the booklet is.
+- **Choose the viewer** in the settings, under *After export*: *System default* (first, and the default), one of the PDF viewers found on the computer (e.g. Papers, Evince, Okular on Linux; Acrobat, SumatraPDF, Edge on Windows; Preview, Skim on macOS), or *Custom…* (last) to pick the program yourself with a file dialog (on macOS the `.app`). Untick *Open the booklet in a PDF viewer* to just save the file, as before. Your other settings are kept; the new ones start with the viewer on and the system default.
+- **The version is in the window title**, and the new ⓘ button at the top right opens an About window with the full version, the license, links to the project and the release notes, and the .NET runtime (handy for bug reports).
+- The user guide and the README describe the new options, with new screenshots.
+
 ## 1.2.1
 
 - Maintenance release: PdfBooklet uses Promptuarium.Serializer 8.4.0 to read and write its settings. Nothing changes for you: the settings are kept, and `settings.prmt` stays a `PRMT:CFG1-LE` container, so earlier versions of PdfBooklet (and of `pedit` and PStudio) can still read the files this version saves.

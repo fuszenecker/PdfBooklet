@@ -324,18 +324,22 @@ def build_story():
     # 3 — main window
     main = ROOT / "docs" / "images" / "main-window.png"
     story += [P("The main window", h1),
-              Shot(str(main), 96 * mm, badges=[(1, 44, 48), (2, 117, 48), (3, 192, 48), (4, 700, 48), (5, 140, 250), (6, 560, 631)]),
+              Shot(str(main), 96 * mm, badges=[(1, 44, 72), (2, 117, 72), (3, 192, 72), (4, 520, 30), (5, 556, 80),
+                                               (6, 140, 300), (7, 560, 631), (8, 776, 72)]),
               Spacer(1, 3 * mm),
               callouts([
                   (1, "<b>Import</b> a PDF."),
-                  (2, "<b>Settings</b> for the sheet, layout and output."),
-                  (3, "<b>Export</b> the booklet. It lights up once there is something to export."),
+                  (2, "<b>Settings</b> for the sheet, layout, output and the PDF viewer."),
+                  (3, "<b>Export</b> the booklet and open it in the PDF viewer, ready to print. It lights up once "
+                      "there is something to export."),
                   (4, "File name, page count and size of the first page, then a summary: sheets, printed sides, "
                       "blank pages added and the scale of page 1. A red message appears here when the settings "
                       "cannot work."),
-                  (5, "<b>Preview</b> of one sheet, front above and back below, exactly as it will be exported. "
+                  (5, "<b>Pages</b> to put in the booklet, e.g. <i>1-4, 7, 10-</i>; empty for all of them."),
+                  (6, "<b>Preview</b> of one sheet, front above and back below, exactly as it will be exported. "
                       "Numbers are pages of your PDF; dashed boxes are blank pages added to fill the booklet."),
-                  (6, "<b>Arrows</b> to step through all the sheets."),
+                  (7, "<b>Arrows</b> to step through all the sheets."),
+                  (8, "<b>About</b>: version, license and links. The version is in the window title too."),
               ]), PageBreak()]
 
     # 4 — imposition
@@ -371,7 +375,7 @@ def build_story():
 
     # 6 — settings 2
     story += [P("Scale, alignment, output", h1),
-              Shot(cropped(settings, (0, 372, 460, 660)), 84 * mm), Spacer(1, 3 * mm),
+              Shot(cropped(settings, (0, 372, 460, 762)), 72 * mm), Spacer(1, 3 * mm),
               P("Scale and alignment", h2),
               P("<b>Fit to area</b> scales every page up or down to fill the space inside the margins. "
                 "<b>Actual size</b> keeps 100 % and clips what does not fit. <b>Custom</b> takes a percentage "
@@ -381,6 +385,10 @@ def build_story():
               P("<b>PDF version</b> 1.4 to 1.7 sets the file header only; PDF/A is not supported. "
                 "<b>Compress streams</b> makes smaller files. <b>Manual duplex</b> is for single-sided printers "
                 "(next page)."),
+              P("After export", h2),
+              P("<b>Open the booklet in a PDF viewer</b> (on by default) opens the exported file, ready to print. "
+                "<b>PDF viewer</b>: the system default, a viewer found on this computer, or <b>Custom…</b> to "
+                "choose the program yourself."),
               P("Settings that cannot work (negative margins, a signature size that is not a multiple of 4, margins "
                 "that leave no room) show the reason and disable OK.", small),
               PageBreak()]
