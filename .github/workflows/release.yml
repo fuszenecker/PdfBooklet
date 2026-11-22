@@ -9,14 +9,14 @@ name: Release
 #   check          -> the tag is the version of version.txt, and RELEASE_NOTES.md has its notes
 #   test           -> the tests
 #   build-deb      -> .deb on an Ubuntu runner
-#   build-rpm      -> .rpm in a Rocky Linux 10 container job (EL rpmbuild, .el10)
+#   build-rpm      -> .rpm in a Rocky Linux 9 container job (EL rpmbuild, .el9), test-installed there
 #   build-windows  -> .exe (NSIS) on a real Windows runner
 #   build-macos    -> .dmg (Apple Silicon) on a macOS runner
 #   release        -> gh release create (becomes the latest release) with the notes of the version
 #                     (RELEASE_NOTES.md, via scripts/Release-Notes.sh), the downloads and all assets
 #
 # The .deb builds on ubuntu-latest (scripts/Build-Deb-Installer.sh, dpkg-deb).
-# The .rpm builds on Rocky Linux 10 (scripts/Build-Rpm-Installer.sh, rpmbuild):
+# The .rpm builds on Rocky Linux 9 (scripts/Build-Rpm-Installer.sh, rpmbuild):
 # a GitHub Actions container job, no Podman. The Windows installer builds
 # natively on windows-latest: .NET publishes win-x64 and NSIS (installed via
 # Chocolatey) compiles the .nsi into a real Windows setup.exe. The macOS
@@ -115,11 +115,11 @@ jobs:
 
   build-rpm:
     needs: test
-    name: Build .rpm (Rocky Linux 10)
+    name: Build .rpm (Rocky Linux 9)
     runs-on: ubuntu-latest
-    # The job runs inside Rocky Linux 10 (the runner starts the container), so rpmbuild is the EL one and the
-    # package gets the .el10 tag
-    container: quay.io/rockylinux/rockylinux:10
+    # The job runs inside Rocky Linux 9 (the runner starts the container), so rpmbuild is the EL one and the
+    # package gets the .el9 tag. Built on 9, the package also installs on 10 and on Fedora.
+    container: quay.io/rockylinux/rockylinux:9
     steps:
       # rpmbuild; git for checkout; libicu for the .NET SDK
       - name: Install the build tools
@@ -150,7 +150,13 @@ jobs:
 
       - name: Verify built artifact
         run: |
-          ls -lh installer/rpm/x86_64/pdfbooklet-${{ steps.version.outputs.version }}-1.el10.x86_64.rpm
+          rpm="installer/rpm/x86_64/pdfbooklet-${{ steps.version.outputs.version }}-1.el9.x86_64.rpm"
+          ls -lh "$rpm"
+          rpm -qpR "$rpm"
+          # Installing the package proves its dependencies resolve on a RHEL-family system
+          dnf install -y "./$rpm"
+          test -x /usr/bin/pdfbooklet
+          test -x /usr/lib/pdfbooklet/PdfBooklet
 
       - name: Upload .rpm installer
         uses: actions/upload-artifact@v4
@@ -290,7 +296,7 @@ jobs:
             echo
             echo "- **Windows** (x64): \`PdfBooklet-${version}-win-x64-setup.exe\`, the installer. It is not signed: if SmartScreen warns, choose More info → Run anyway."
             echo "- **Debian, Ubuntu** (x64): \`sudo apt install ./pdfbooklet_${version}_amd64.deb\`"
-            echo "- **Fedora, RHEL, Rocky** (x64): \`sudo dnf install ./pdfbooklet-${version}-1.el10.x86_64.rpm\`"
+            echo "- **Fedora, RHEL, Rocky** (x64): \`sudo dnf install ./pdfbooklet-${version}-1.el9.x86_64.rpm\`"
             echo "- **macOS** (Apple Silicon): \`PdfBooklet-${version}-osx-arm64.dmg\`, drag the app to Applications. It is only ad-hoc signed: open it the first time with right-click → Open."
             echo
             echo "No .NET is needed: every installer is self-contained."

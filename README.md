@@ -28,7 +28,7 @@ Download the installer for your system from the [Releases](https://github.com/fu
 | System | File | Install |
 |---|---|---|
 | Debian, Ubuntu | `pdfbooklet_<version>_amd64.deb` | `sudo apt install ./pdfbooklet_<version>_amd64.deb` |
-| Fedora, RHEL, Rocky | `pdfbooklet-<version>-1.el10.x86_64.rpm` | `sudo dnf install ./pdfbooklet-<version>-1.el10.x86_64.rpm` |
+| Fedora, RHEL, Rocky | `pdfbooklet-<version>-1.el9.x86_64.rpm` | `sudo dnf install ./pdfbooklet-<version>-1.el9.x86_64.rpm` |
 | Windows (x64) | `PdfBooklet-<version>-win-x64-setup.exe` | Run the installer. SmartScreen may warn because it is unsigned: More info, then Run anyway |
 | macOS (Apple Silicon) | `PdfBooklet-<version>-osx-arm64.dmg` | Drag the app to Applications. It is only ad-hoc signed: on first launch use right-click, then Open |
 
@@ -87,7 +87,7 @@ The scripts in `scripts/` build the installers and read the version from `versio
 | Platform | Script | Needs |
 |---|---|---|
 | Debian package | `scripts/Build-Deb-Installer.sh` | `dpkg-deb` |
-| RPM package | `scripts/Build-Rpm-Installer.sh` | `rpmbuild` on an EL/Fedora system (the `Release` workflow uses Rocky Linux 10) |
+| RPM package | `scripts/Build-Rpm-Installer.sh` | `rpmbuild` on an EL/Fedora system (the `Release` workflow uses Rocky Linux 9) |
 | Windows installer | `scripts/Build-Installer.ps1` | PowerShell 7, [NSIS](https://nsis.sourceforge.io/) (also runs on Linux with `makensis`) |
 | macOS disk image | `scripts/Build-Dmg-Installer.sh` | macOS |
 
