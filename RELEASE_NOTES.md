@@ -8,7 +8,7 @@ The notes of every release, the newest first. A section belongs to a version wit
 - **Choose the viewer** in the settings, under *After export*: *System default* (first, and the default), one of the PDF viewers found on the computer (e.g. Papers, Evince, Okular on Linux; Acrobat, SumatraPDF, Edge on Windows; Preview, Skim on macOS), or *Custom…* (last) to pick the program yourself with a file dialog (on macOS the `.app`). Untick *Open the booklet in a PDF viewer* to just save the file, as before. Your other settings are kept; the new ones start with the viewer on and the system default.
 - **The version is in the window title**, and the new ⓘ button at the top right opens an About window with the full version, the license, links to the project and the release notes, and the .NET runtime (handy for bug reports).
 - The user guide and the README describe the new options, with new screenshots.
-- 1.3.0.1 is the same application, packaged for more Linux systems: the `.rpm` is built on Rocky Linux 9 (`.el9`), so it installs on RHEL, Rocky and Alma 9 as well as on 10 and on Fedora. The 1.3.0.0 `.rpm` (`.el10`) needed version 10.
+- 1.3.0.2 is the same application, packaged for more Linux systems: the `.rpm` is built on Rocky Linux 9 (`.el9`), so it installs on RHEL, Rocky and Alma 9 as well as on 10 and on Fedora. The 1.3.0.0 `.rpm` (`.el10`) needed version 10.
 
 ## 1.2.1
 
