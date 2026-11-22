@@ -87,8 +87,7 @@ The scripts in `scripts/` build the installers and read the version from `versio
 | Platform | Script | Needs |
 |---|---|---|
 | Debian package | `scripts/Build-Deb-Installer.sh` | `dpkg-deb` |
-| RPM package | `scripts/Build-Rpm-Installer.sh` | `rpmbuild` |
-| Both Linux packages in containers | `scripts/Build-Installer.Podman.sh` | `podman` only |
+| RPM package | `scripts/Build-Rpm-Installer.sh` | `rpmbuild` on an EL/Fedora system (the `Release` workflow uses Rocky Linux 10) |
 | Windows installer | `scripts/Build-Installer.ps1` | PowerShell 7, [NSIS](https://nsis.sourceforge.io/) (also runs on Linux with `makensis`) |
 | macOS disk image | `scripts/Build-Dmg-Installer.sh` | macOS |
 
@@ -101,7 +100,6 @@ src/        Views, ViewModels, Services, Stores, Interfaces, Models, Configurati
 tests/      PdfBooklet.Tests (MSTest + NSubstitute)
 docs/       User guide and sample PDF (PdfBooklet-guide.pdf), its generator and screenshots
 scripts/    Installer build scripts
-container/  Containerfiles for the Linux package builds
 packaging/  Desktop entry, lintian overrides and NSIS script of the installers
 installer/  Package output (git-ignored)
 ```

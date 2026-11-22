@@ -8,14 +8,16 @@ name: Release
 #
 #   check          -> the tag is the version of version.txt, and RELEASE_NOTES.md has its notes
 #   test           -> the tests
-#   build-linux    -> .deb (Ubuntu 26.04) + .rpm (Rocky 10) via Podman
+#   build-deb      -> .deb on an Ubuntu runner
+#   build-rpm      -> .rpm in a Rocky Linux 10 container job (EL rpmbuild, .el10)
 #   build-windows  -> .exe (NSIS) on a real Windows runner
 #   build-macos    -> .dmg (Apple Silicon) on a macOS runner
 #   release        -> gh release create (becomes the latest release) with the notes of the version
 #                     (RELEASE_NOTES.md, via scripts/Release-Notes.sh), the downloads and all assets
 #
-# The Linux installers build on ubuntu-latest using the same Podman pipeline as
-# locally (scripts/Build-Installer.Podman.sh). The Windows installer builds
+# The .deb builds on ubuntu-latest (scripts/Build-Deb-Installer.sh, dpkg-deb).
+# The .rpm builds on Rocky Linux 10 (scripts/Build-Rpm-Installer.sh, rpmbuild):
+# a GitHub Actions container job, no Podman. The Windows installer builds
 # natively on windows-latest: .NET publishes win-x64 and NSIS (installed via
 # Chocolatey) compiles the .nsi into a real Windows setup.exe. The macOS
 # installer builds natively on macos-latest (scripts/Build-Dmg-Installer.sh).
@@ -75,9 +77,9 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet test PdfBooklet.slnx --configuration Release --verbosity normal
 
-  build-linux:
+  build-deb:
     needs: test
-    name: Build .deb and .rpm (Podman)
+    name: Build .deb (Ubuntu)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -91,24 +93,70 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "Resolved version: ${version}"
 
-      - name: Build .deb and .rpm installers
-        run: |
-          ./scripts/Build-Installer.Podman.sh --format all --version "${{ steps.version.outputs.version }}"
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
-      - name: Verify built artifacts
+      - name: Build .deb installer
         run: |
-          echo "== .deb =="
+          ./scripts/Build-Deb-Installer.sh --version "${{ steps.version.outputs.version }}"
+
+      - name: Verify built artifact
+        run: |
           ls -lh installer/deb/pdfbooklet_${{ steps.version.outputs.version }}_*.deb
-          echo "== .rpm =="
-          ls -lh installer/rpm/x86_64/pdfbooklet-${{ steps.version.outputs.version }}-*.rpm
 
-      - name: Upload Linux installers
+      - name: Upload .deb installer
         uses: actions/upload-artifact@v4
         with:
-          name: linux-installers
-          path: |
-            installer/deb/*.deb
-            installer/rpm/x86_64/*.rpm
+          name: deb-installer
+          path: installer/deb/*.deb
+          if-no-files-found: error
+
+  build-rpm:
+    needs: test
+    name: Build .rpm (Rocky Linux 10)
+    runs-on: ubuntu-latest
+    # The job runs inside Rocky Linux 10 (the runner starts the container), so rpmbuild is the EL one and the
+    # package gets the .el10 tag
+    container: quay.io/rockylinux/rockylinux:10
+    steps:
+      # rpmbuild; git for checkout; libicu for the .NET SDK
+      - name: Install the build tools
+        run: |
+          dnf install -y --nodocs --setopt=install_weak_deps=False \
+            rpm-build git tar gzip findutils ca-certificates libicu
+          dnf clean all
+          rpmbuild --version
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${version}"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build .rpm installer
+        run: |
+          ./scripts/Build-Rpm-Installer.sh --version "${{ steps.version.outputs.version }}"
+
+      - name: Verify built artifact
+        run: |
+          ls -lh installer/rpm/x86_64/pdfbooklet-${{ steps.version.outputs.version }}-1.el10.x86_64.rpm
+
+      - name: Upload .rpm installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-installer
+          path: installer/rpm/x86_64/*.rpm
           if-no-files-found: error
 
   build-windows:
@@ -196,7 +244,7 @@ jobs:
 
   release:
     name: Create release with all installers
-    needs: [build-linux, build-windows, build-macos]
+    needs: [build-deb, build-rpm, build-windows, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

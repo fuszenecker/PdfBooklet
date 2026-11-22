@@ -85,9 +85,8 @@ The NSIS installer removes a previous installation first and optionally adds Pdf
 
 | Platform | Script | Output |
 |---|---|---|
-| Linux .deb | `scripts/Build-Deb-Installer.sh` | `installer/deb/pdfbooklet_<ver>_amd64.deb` |
-| Linux .rpm | `scripts/Build-Rpm-Installer.sh` | `installer/rpm/x86_64/pdfbooklet-<ver>-1.el10.x86_64.rpm` |
-| Linux both, in Podman | `scripts/Build-Installer.Podman.sh` | builds on Ubuntu 26.04 / Rocky 10 images from `container/` |
+| Linux .deb | `scripts/Build-Deb-Installer.sh` (CI: ubuntu-latest) | `installer/deb/pdfbooklet_<ver>_amd64.deb` |
+| Linux .rpm | `scripts/Build-Rpm-Installer.sh` (on EL; CI builds in a Rocky Linux 10 container job, no Podman) | `installer/rpm/x86_64/pdfbooklet-<ver>-1.el10.x86_64.rpm` |
 | Windows .exe | `scripts/Build-Installer.ps1` (PowerShell 7 + NSIS, `packaging/windows/PdfBooklet.nsi`; also runs on Linux) | `installer/nsis/PdfBooklet-<ver>-win-x64-setup.exe` |
 | macOS .dmg | `scripts/Build-Dmg-Installer.sh` (macOS only) | `installer/dmg/PdfBooklet-<ver>-osx-arm64.dmg` |
 
